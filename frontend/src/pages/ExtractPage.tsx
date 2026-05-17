@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ExtractTable from '../components/ExtractTable'
+import PipelineLog from '../components/PipelineLog'
 import { extractPolicy } from '../services/api'
 import type { PolicyData } from '../services/api'
 
@@ -9,15 +10,19 @@ interface Props {
 
 export default function ExtractPage({ documentLoaded }: Props) {
   const [data, setData] = useState<PolicyData | null>(null)
+  const [steps, setSteps] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleExtract() {
     setLoading(true)
     setError(null)
+    setData(null)
+    setSteps([])
     try {
       const result = await extractPolicy()
       setData(result.data)
+      setSteps(result.steps)
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
@@ -29,7 +34,7 @@ export default function ExtractPage({ documentLoaded }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <button
           type="button"
@@ -48,6 +53,7 @@ export default function ExtractPage({ documentLoaded }: Props) {
           {error}
         </div>
       )}
+      {steps.length > 0 && <PipelineLog steps={steps} title="Extraction Pipeline" />}
       {data && <ExtractTable data={data} />}
     </div>
   )

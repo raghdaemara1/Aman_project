@@ -20,30 +20,36 @@ async def upload_document(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=415, detail="Only PDF files are accepted.")
 
+    content = await file.read()
+
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-        tmp.write(await file.read())
+        tmp.write(content)
         tmp_path = tmp.name
 
+    steps: list[str] = []
     try:
-        chunks = parse_and_chunk(tmp_path)
+        chunks = parse_and_chunk(tmp_path, steps=steps)
         if not chunks:
             raise HTTPException(
                 status_code=422,
                 detail="Could not parse the PDF. The file may be corrupt or password-protected.",
             )
 
-        ingest_documents(chunks)
+        ingest_documents(chunks, steps=steps)
 
         page_numbers = [c.metadata.get("page_number", 1) for c in chunks]
         page_count = max(page_numbers) if page_numbers else 1
+
+        steps.append(f"Document ready — {len(chunks)} chunks indexed and searchable")
 
         return {
             "chunks_indexed": len(chunks),
             "metadata": {
                 "filename": file.filename,
-                "page_count": page_count,
+                "pages": page_count,
                 "indexed_at": datetime.datetime.utcnow().isoformat() + "Z",
             },
+            "steps": steps,
         }
     except HTTPException:
         raise
@@ -67,8 +73,10 @@ async def ask_question(request: AskRequest):
             detail="No document indexed. Please upload a PDF first.",
         )
 
+    steps: list[str] = []
     try:
-        return run_agent(request.query)
+        result = run_agent(request.query, steps=steps)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
@@ -81,10 +89,15 @@ async def extract_data():
             detail="No document indexed. Please upload a PDF first.",
         )
 
+    steps: list[str] = []
+    steps.append("Starting structured extraction pipeline")
     try:
         retriever = get_retriever(k=10)
-        policy_data = extract_policy_data(retriever)
-        return {"policy_data": policy_data.model_dump()}
+        policy_data = extract_policy_data(retriever, steps=steps)
+        return {
+            "data": policy_data.model_dump(),
+            "steps": steps,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction error: {str(e)}")
 

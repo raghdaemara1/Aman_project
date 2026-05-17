@@ -21,37 +21,44 @@ SYSTEM_PROMPT = (
 )
 
 
-def run_agent(query: str) -> dict:
-    """Run the agent on the user query.
+def run_agent(query: str, steps: list[str] | None = None) -> dict:
+    """Run the agent on the user query. Returns answer, tool_used, source_chunks, page_refs, steps."""
+    def log(msg: str) -> None:
+        print(f"[agent] {msg}", flush=True)
+        if steps is not None:
+            steps.append(msg)
 
-    Returns:
-        answer: str, tool_used: str, source_chunks: list[str], page_refs: list[int]
-    """
+    log(f"Query received: \"{query}\"")
+    log("Initializing ReAct agent (llama3.1:latest + 2 tools: hybrid_search, structured_extract)")
+
     llm = ChatOllama(model="llama3.1:latest", temperature=0, base_url=OLLAMA_BASE_URL)
     tools = [hybrid_search, structured_extract]
-
     agent = create_agent(model=llm, tools=tools, system_prompt=SYSTEM_PROMPT)
 
+    log("Agent reasoning — selecting tool...")
     result = agent.invoke({"messages": [HumanMessage(content=query)]})
 
     messages = result.get("messages", [])
 
-    # Extract final answer from the last AIMessage
+    # Extract final answer from last AIMessage
     answer = "I could not find an answer in the document."
     for msg in reversed(messages):
         if isinstance(msg, AIMessage) and msg.content:
             answer = msg.content
             break
 
-    # Extract tool used and source chunks from ToolMessages
+    # Extract tool used from first AIMessage with tool_calls
     tool_used = "hybrid_search"
-    source_chunks: list[str] = []
-    page_refs: list[int] = []
-
     for msg in messages:
         if isinstance(msg, AIMessage) and hasattr(msg, "tool_calls") and msg.tool_calls:
             tool_used = msg.tool_calls[0].get("name", "hybrid_search")
             break
+
+    log(f"Tool selected: {tool_used}")
+
+    # Extract source chunks from ToolMessage content
+    source_chunks: list[str] = []
+    page_refs: list[int] = []
 
     for msg in messages:
         if isinstance(msg, ToolMessage) and isinstance(msg.content, str):
@@ -85,6 +92,10 @@ def run_agent(query: str) -> dict:
                 page_refs.append(current_page)
             break
 
+    log(f"Retrieved {len(source_chunks)} source chunk(s)")
+    log("Generating final answer with llama3.1:latest...")
+    log("Done")
+
     if not source_chunks:
         source_chunks = ["Source content retrieved from document index."]
         page_refs = [1]
@@ -94,4 +105,5 @@ def run_agent(query: str) -> dict:
         "tool_used": tool_used,
         "source_chunks": source_chunks,
         "page_refs": page_refs,
+        "steps": steps if steps is not None else [],
     }

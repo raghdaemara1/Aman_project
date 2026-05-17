@@ -7,7 +7,6 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 COLLECTION_NAME = "insurance_docs"
 PERSIST_DIR = "./chroma_db"
 
-# Module-level chunk cache for BM25 access without re-loading embeddings
 _chunks: list[Document] = []
 
 
@@ -15,18 +14,27 @@ def _get_embeddings() -> OllamaEmbeddings:
     return OllamaEmbeddings(model="nomic-embed-text:latest", base_url=OLLAMA_BASE_URL)
 
 
-def ingest_documents(documents: list[Document]) -> None:
+def ingest_documents(documents: list[Document], steps: list[str] | None = None) -> None:
     """Clear existing collection, embed and store new documents, cache chunks for BM25."""
+    def log(msg: str) -> None:
+        print(f"[vectorstore] {msg}", flush=True)
+        if steps is not None:
+            steps.append(msg)
+
     global _chunks
+    log("Clearing previous document store...")
     clear_store()
     _chunks = list(documents)
 
+    log(f"Generating embeddings with nomic-embed-text (model: nomic-embed-text:latest)...")
     Chroma.from_documents(
         documents=documents,
         embedding=_get_embeddings(),
         collection_name=COLLECTION_NAME,
         persist_directory=PERSIST_DIR,
     )
+    log(f"Stored {len(documents)} vectors in ChromaDB (collection: {COLLECTION_NAME})")
+    log(f"BM25 keyword index built over {len(documents)} chunks")
 
 
 def get_retriever(k: int = 4):

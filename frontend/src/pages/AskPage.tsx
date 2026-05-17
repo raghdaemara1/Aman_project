@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import QuestionPanel from '../components/QuestionPanel'
 import AnswerCard from '../components/AnswerCard'
+import PipelineLog from '../components/PipelineLog'
 import { askQuestion } from '../services/api'
 import type { AskResponse } from '../services/api'
 
@@ -16,6 +17,7 @@ export default function AskPage({ documentLoaded }: Props) {
   async function handleAsk(query: string) {
     setLoading(true)
     setError(null)
+    setAnswer(null)
     try {
       const result = await askQuestion(query)
       setAnswer(result)
@@ -30,7 +32,7 @@ export default function AskPage({ documentLoaded }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <QuestionPanel
         documentLoaded={documentLoaded}
         onAnswer={handleAsk}
@@ -41,7 +43,12 @@ export default function AskPage({ documentLoaded }: Props) {
           {error}
         </div>
       )}
-      {answer && <AnswerCard response={answer} />}
+      {answer && (
+        <>
+          <PipelineLog steps={answer.steps} title="Agent Pipeline" />
+          <AnswerCard response={answer} />
+        </>
+      )}
     </div>
   )
 }

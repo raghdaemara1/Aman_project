@@ -2,13 +2,14 @@ import axios from 'axios'
 
 export interface UploadMetadata {
   filename: string
-  page_count: number
+  pages: number
   indexed_at: string
 }
 
 export interface UploadResponse {
   chunks_indexed: number
   metadata: UploadMetadata
+  steps: string[]
 }
 
 export interface AskResponse {
@@ -16,6 +17,7 @@ export interface AskResponse {
   tool_used: 'hybrid_search' | 'structured_extract'
   source_chunks: string[]
   page_refs: number[]
+  steps: string[]
 }
 
 export interface PolicyData {
@@ -30,7 +32,8 @@ export interface PolicyData {
 }
 
 export interface ExtractResponse {
-  policy_data: PolicyData
+  data: PolicyData
+  steps: string[]
 }
 
 const api = axios.create({ baseURL: '/api/v1' })

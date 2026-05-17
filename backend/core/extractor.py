@@ -25,11 +25,19 @@ class PolicyData(BaseModel):
     key_exclusions: list[str] = Field(description="List of things NOT covered by this policy")
 
 
-def extract_policy_data(retriever) -> PolicyData:
-    """Retrieve all chunks, pass to LLM with structured output prompt, return PolicyData."""
+def extract_policy_data(retriever, steps: list[str] | None = None) -> PolicyData:
+    """Retrieve chunks, send to LLM with Pydantic schema, return structured PolicyData."""
+    def log(msg: str) -> None:
+        print(f"[extractor] {msg}", flush=True)
+        if steps is not None:
+            steps.append(msg)
+
+    log("Retrieving top-10 chunks from ChromaDB...")
     docs = retriever.invoke(
         "policy number holder name coverage type start date expiry date premium exclusions"
     )
+    log(f"Retrieved {len(docs)} chunks ({sum(len(d.page_content) for d in docs)} chars of context)")
+
     context = "\n\n".join(doc.page_content for doc in docs)
 
     llm = ChatOllama(model="llama3.1:latest", temperature=0, base_url=OLLAMA_BASE_URL)
@@ -42,16 +50,22 @@ def extract_policy_data(retriever) -> PolicyData:
 
     chain = prompt | llm | parser
 
+    log("Sending to llama3.1:latest with Pydantic schema (8 fields)...")
     try:
-        return chain.invoke({
+        result = chain.invoke({
             "context": context,
             "format_instructions": parser.get_format_instructions(),
         })
+        log("Pydantic parser: structured output parsed successfully")
+        log(f"Extraction complete — {len([f for f in result.model_dump().values() if f and f != 'Not specified'])} / 8 fields populated")
+        return result
     except Exception:
-        # Fallback: with_structured_output JSON mode
+        log("Pydantic parser failed — falling back to with_structured_output mode")
         structured_llm = llm.with_structured_output(PolicyData)
         fallback_prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("human", "Document content:\n\n{context}\n\nExtract the policy data:"),
         ])
-        return (fallback_prompt | structured_llm).invoke({"context": context})
+        result = (fallback_prompt | structured_llm).invoke({"context": context})
+        log("Fallback extraction complete")
+        return result
