@@ -1,4 +1,4 @@
-from langchain.tools import tool
+from langchain_core.tools import tool
 from core.vectorstore import get_retriever
 from core.extractor import extract_policy_data
 

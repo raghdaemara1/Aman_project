@@ -1,6 +1,6 @@
 import os
 from langchain_ollama import ChatOllama
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
@@ -27,7 +27,7 @@ class PolicyData(BaseModel):
 
 def extract_policy_data(retriever) -> PolicyData:
     """Retrieve all chunks, pass to LLM with structured output prompt, return PolicyData."""
-    docs = retriever.get_relevant_documents(
+    docs = retriever.invoke(
         "policy number holder name coverage type start date expiry date premium exclusions"
     )
     context = "\n\n".join(doc.page_content for doc in docs)

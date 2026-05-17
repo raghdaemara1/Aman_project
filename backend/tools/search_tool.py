@@ -1,4 +1,4 @@
-from langchain.tools import tool
+from langchain_core.tools import tool
 from rank_bm25 import BM25Okapi
 from core.vectorstore import get_retriever, get_chunks
 
@@ -25,7 +25,7 @@ def hybrid_search(query: str) -> str:
     vector_ranked: list[int] = []
     try:
         retriever = get_retriever(k=k)
-        vector_docs = retriever.get_relevant_documents(query)
+        vector_docs = retriever.invoke(query)
         for vdoc in vector_docs:
             for i, chunk in enumerate(chunks):
                 if chunk.page_content == vdoc.page_content:
