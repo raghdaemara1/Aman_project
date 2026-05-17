@@ -374,3 +374,14 @@ Create all files and folders in the structure defined.
 After building, run the app and confirm it starts without errors.
 Start with requirements.txt, then core/ files, then tools/, then app.py last.
 ```
+
+---
+
+<!-- SPECKIT START -->
+## Active Implementation Plan
+
+Feature: **Insurance Document Intelligence Agent**
+Branch: `001-insurance-doc-agent`
+Plan: [`specs/001-insurance-doc-agent/plan.md`](specs/001-insurance-doc-agent/plan.md)
+Spec: [`specs/001-insurance-doc-agent/spec.md`](specs/001-insurance-doc-agent/spec.md)
+<!-- SPECKIT END -->

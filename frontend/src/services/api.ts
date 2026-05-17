@@ -1,0 +1,57 @@
+import axios from 'axios'
+
+export interface UploadMetadata {
+  filename: string
+  page_count: number
+  indexed_at: string
+}
+
+export interface UploadResponse {
+  chunks_indexed: number
+  metadata: UploadMetadata
+}
+
+export interface AskResponse {
+  answer: string
+  tool_used: 'hybrid_search' | 'structured_extract'
+  source_chunks: string[]
+  page_refs: number[]
+}
+
+export interface PolicyData {
+  policy_number: string
+  policy_holder: string
+  coverage_type: string
+  start_date: string
+  end_date: string
+  premium_amount: string
+  coverage_limit: string
+  key_exclusions: string[]
+}
+
+export interface ExtractResponse {
+  policy_data: PolicyData
+}
+
+const api = axios.create({ baseURL: '/api/v1' })
+
+export async function uploadDoc(file: File): Promise<UploadResponse> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<UploadResponse>('/upload', form)
+  return data
+}
+
+export async function askQuestion(query: string): Promise<AskResponse> {
+  const { data } = await api.post<AskResponse>('/ask', { query })
+  return data
+}
+
+export async function extractPolicy(): Promise<ExtractResponse> {
+  const { data } = await api.post<ExtractResponse>('/extract')
+  return data
+}
+
+export async function clearStore(): Promise<void> {
+  await api.delete('/store')
+}
