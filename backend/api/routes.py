@@ -37,8 +37,17 @@ async def get_logs():
     return {"steps": list(current_pipeline_steps)}
 
 
-@router.post("/upload")
+@router.post("/upload", tags=["documents"], summary="Upload and index a PDF")
 async def upload_document(file: UploadFile = File(...)):
+    """
+    Accepts a PDF file and runs the full ingestion pipeline:
+    1. Validates it's a PDF
+    2. Computes MD5 hash — skips if same document is already indexed
+    3. Parses text from each page using `pypdf`
+    4. Splits into 500-token chunks with 50-token overlap
+    5. Generates embeddings using `nomic-embed-text` via Ollama
+    6. Stores vectors in ChromaDB and caches chunks for BM25
+    """
     global current_pipeline_steps, last_uploaded_hash
     current_pipeline_steps.clear()
 
@@ -111,8 +120,16 @@ async def upload_document(file: UploadFile = File(...)):
             pass
 
 
-@router.post("/ask")
+@router.post("/ask", tags=["agent"], summary="Ask the ReAct agent a question")
 async def ask_question(request: AskRequest):
+    """
+    Sends a natural language question to the LangChain ReAct agent.
+    The agent **reasons** about which tool to use:
+    - `hybrid_search`: BM25 + ChromaDB vector search merged via Reciprocal Rank Fusion (RRF)
+    - `structured_extract`: Pydantic schema extraction for precise field lookup
+
+    Always returns: the answer, the tool used, source chunks, page references, and pipeline steps.
+    """
     global current_pipeline_steps
     current_pipeline_steps.clear()
 
@@ -138,8 +155,16 @@ async def ask_question(request: AskRequest):
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
 
-@router.post("/extract")
+@router.post("/extract", tags=["extraction"], summary="Extract all 8 structured policy fields")
 async def extract_data():
+    """
+    Runs a one-click structured extraction pipeline:
+    1. Fetches top-10 most relevant chunks from ChromaDB
+    2. Sends them to `llama3.1` with a strict Pydantic schema
+    3. Returns all 8 fields: policy number, holder, coverage type, dates, premium, limit, exclusions
+
+    Poll `GET /api/v1/logs` every 1-2s to see live step progress.
+    """
     global current_pipeline_steps
     current_pipeline_steps.clear()
 
@@ -154,10 +179,11 @@ async def extract_data():
     current_pipeline_steps.append("Starting structured extraction pipeline")
     try:
         retriever = get_retriever(k=10)
+        all_chunks = get_chunks()
         # Run extraction in thread — Ollama LLM call is blocking
         print(">>> [API] Running Pydantic extractor (Ollama in background)...")
         policy_data = await _run(
-            lambda: extract_policy_data(retriever, steps=current_pipeline_steps)
+            lambda: extract_policy_data(retriever, steps=current_pipeline_steps, all_chunks=all_chunks)
         )
         print(">>> [API] Extraction complete!")
         return {
@@ -169,8 +195,9 @@ async def extract_data():
         raise HTTPException(status_code=500, detail=f"Extraction error: {str(e)}")
 
 
-@router.delete("/store")
+@router.delete("/store", tags=["documents"], summary="Clear the vector store")
 async def clear_document_store():
+    """Deletes the ChromaDB collection and resets the in-memory BM25 index. Use this to start fresh with a new document."""
     global current_pipeline_steps, last_uploaded_hash
     current_pipeline_steps.clear()
     last_uploaded_hash = None

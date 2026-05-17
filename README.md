@@ -216,18 +216,12 @@ One click extracts all 8 key fields from the policy:
                       ▼
 ┌─────────────────────────────────────────────────┐
 │  Step 4: LLM Extraction with Pydantic Schema    │
-│  llama3.1 must return EXACTLY:                  │
-│                                                 │
-│  {                                              │
-│    "policy_number":   "US151741",               │
-│    "policy_holder":   "School District of...", │
-│    "coverage_type":   "Accident Only Policy",   │
-│    "start_date":      "August 1, 2013",         │
-│    "end_date":        "August 1, 2014",         │
-│    "premium_amount":  "Not specified",          │
-│    "coverage_limit":  "$25,000 per accident",   │
-│    "key_exclusions":  ["Pre-existing...", ...]  │
-│  }                                              │
+│  llama3.1 reads the document and returns a      │
+│  structured JSON object with 8 fields —         │
+│  extracted live from YOUR uploaded PDF.         │
+│  Fields: policy_number, policy_holder,          │
+│  coverage_type, start_date, end_date,           │
+│  premium_amount, coverage_limit, key_exclusions │
 └─────────────────────┬───────────────────────────┘
                       │
                       ▼

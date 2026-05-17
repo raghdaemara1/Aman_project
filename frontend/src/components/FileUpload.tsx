@@ -3,11 +3,12 @@ import { uploadDoc } from '../services/api'
 import type { UploadResponse } from '../services/api'
 
 interface Props {
+  onStart?: () => void
   onSuccess: (data: UploadResponse) => void
   onError: (msg: string) => void
 }
 
-export default function FileUpload({ onSuccess, onError }: Props) {
+export default function FileUpload({ onStart, onSuccess, onError }: Props) {
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -17,6 +18,7 @@ export default function FileUpload({ onSuccess, onError }: Props) {
       return
     }
     setLoading(true)
+    if (onStart) onStart()
     try {
       const result = await uploadDoc(file)
       onSuccess(result)

@@ -1,5 +1,5 @@
 import os
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain_core.documents import Document
 
@@ -27,13 +27,17 @@ def ingest_documents(documents: list[Document], steps: list[str] | None = None) 
     _chunks = list(documents)
 
     log(f"Generating embeddings with nomic-embed-text (model: nomic-embed-text:latest)...")
-    Chroma.from_documents(
-        documents=documents,
-        embedding=_get_embeddings(),
-        collection_name=COLLECTION_NAME,
-        persist_directory=PERSIST_DIR,
-    )
-    log(f"Stored {len(documents)} vectors in ChromaDB (collection: {COLLECTION_NAME})")
+    try:
+        Chroma.from_documents(
+            documents=documents,
+            embedding=_get_embeddings(),
+            collection_name=COLLECTION_NAME,
+            persist_directory=PERSIST_DIR,
+        )
+        log(f"Stored {len(documents)} vectors in ChromaDB (collection: {COLLECTION_NAME})")
+    except Exception as e:
+        print(f"[vectorstore] WARNING: ChromaDB persist failed: {e}", flush=True)
+        log(f"ChromaDB persist failed ({e}) — search will use in-memory BM25 only")
     log(f"BM25 keyword index built over {len(documents)} chunks")
 
 

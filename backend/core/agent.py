@@ -1,6 +1,6 @@
 import os
 from langchain_ollama import ChatOllama
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from tools.search_tool import hybrid_search
 from tools.extract_tool import structured_extract
@@ -33,7 +33,7 @@ def run_agent(query: str, steps: list[str] | None = None) -> dict:
 
     llm = ChatOllama(model="llama3.1:latest", temperature=0, base_url=OLLAMA_BASE_URL)
     tools = [hybrid_search, structured_extract]
-    agent = create_agent(model=llm, tools=tools, system_prompt=SYSTEM_PROMPT)
+    agent = create_react_agent(llm, tools, state_modifier=SYSTEM_PROMPT)
 
     log("Agent reasoning — selecting tool...")
     result = agent.invoke({"messages": [HumanMessage(content=query)]})

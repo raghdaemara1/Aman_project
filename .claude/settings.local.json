@@ -5,7 +5,20 @@
       "Bash(python -m uvicorn main:app --reload --port 8000)",
       "Bash(Start-Sleep -Seconds 5)",
       "Bash(Get-Content \"C:\\\\Users\\\\RAGHDA~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--OneDrive---Obeikan-Investment-Group-desktop-Aman-my-project\\\\1a49995f-9ab7-4d7a-bf61-99a2eaf8f3e0\\\\tasks\\\\bgq6wimx8.output\")",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(curl -s \"http://localhost:5173/src/main.tsx\")",
+      "Bash(curl -s \"http://localhost:5173/src/App.tsx\")",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(python -c \"import langchain_chroma; print\\('langchain-chroma installed'\\)\")",
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(python -c \"from langchain_chroma import Chroma; print\\('langchain_chroma import OK'\\)\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8000\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(curl *)"
     ]
   }
 }
