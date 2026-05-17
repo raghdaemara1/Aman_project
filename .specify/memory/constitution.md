@@ -41,7 +41,7 @@ The application MUST maintain a strict boundary between frontend and backend:
 
 The LangChain agent MUST expose exactly two tools with distinct responsibilities:
 
-- **`semantic_search`** — vector similarity retrieval for open-ended policy questions
+- **`hybrid_search`** — combines BM25 keyword matching and ChromaDB vector similarity, merged via Reciprocal Rank Fusion, for open-ended policy questions
 - **`structured_extract`** — Pydantic-typed field extraction for specific data lookups
 
 Rules:
@@ -49,8 +49,9 @@ Rules:
 - The agent MUST use `create_react_agent` (ReAct pattern) from LangChain
 - Every agent response MUST identify which tool was used
 - Tool selection logic MUST be driven by LLM reasoning, not hard-coded routing
+- `hybrid_search` MUST combine both BM25 (`rank-bm25` library) and vector retrieval — neither alone is sufficient
 
-**Rationale**: Forcing the agent to choose between retrieval strategies is what makes the system *agentic*. A single tool loses explainability and type safety. Interviewers expect this distinction.
+**Rationale**: Hybrid retrieval significantly outperforms pure vector search on insurance documents containing specific terminology, policy numbers, and exclusion clauses where exact keyword matching matters. Forcing the agent to choose between retrieval and extraction is what makes the system *agentic*.
 
 ### III. Structured Output with Pydantic (NON-NEGOTIABLE)
 
