@@ -1,5 +1,5 @@
 # Insurance Document Intelligence Agent
-## AMAN Holding — Interview Demo
+## Enterprise Agentic AI Demonstration
 
 ### What This Demonstrates
 
