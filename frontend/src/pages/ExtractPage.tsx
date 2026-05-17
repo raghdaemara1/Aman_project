@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ExtractTable from '../components/ExtractTable'
 import PipelineLog from '../components/PipelineLog'
-import { extractPolicy } from '../services/api'
+import { extractPolicy, getLogs } from '../services/api'
 import type { PolicyData } from '../services/api'
 
 interface Props {
@@ -13,6 +13,25 @@ export default function ExtractPage({ documentLoaded }: Props) {
   const [steps, setSteps] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>
+    if (loading) {
+      interval = setInterval(async () => {
+        try {
+          const res = await getLogs()
+          if (res.steps && res.steps.length > 0) {
+            setSteps(res.steps)
+          }
+        } catch (e) {
+          // Ignore polling errors
+        }
+      }, 1500)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [loading])
 
   async function handleExtract() {
     setLoading(true)
@@ -53,7 +72,7 @@ export default function ExtractPage({ documentLoaded }: Props) {
           {error}
         </div>
       )}
-      {steps.length > 0 && <PipelineLog steps={steps} title="Extraction Pipeline" />}
+      {steps?.length > 0 && <PipelineLog steps={steps} title="Extraction Pipeline (Live)" />}
       {data && <ExtractTable data={data} />}
     </div>
   )

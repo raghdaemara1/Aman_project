@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import FileUpload from './components/FileUpload'
 import PipelineLog from './components/PipelineLog'
 import AskPage from './pages/AskPage'
 import ExtractPage from './pages/ExtractPage'
+import { getLogs } from './services/api'
 import type { UploadResponse } from './services/api'
 
 type Tab = 'ask' | 'extract'
@@ -12,14 +13,44 @@ export default function App() {
   const [uploadInfo, setUploadInfo] = useState<UploadResponse | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [showUploadLog, setShowUploadLog] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [liveUploadSteps, setLiveUploadSteps] = useState<string[]>([])
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>
+    if (isUploading) {
+      interval = setInterval(async () => {
+        try {
+          const res = await getLogs()
+          if (res.steps && res.steps.length > 0) {
+            setLiveUploadSteps(res.steps)
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }, 1500)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isUploading])
+
+  function handleUploadStart() {
+    setIsUploading(true)
+    setShowUploadLog(true)
+    setLiveUploadSteps([])
+  }
 
   function handleUploadSuccess(data: UploadResponse) {
+    setIsUploading(false)
     setUploadInfo(data)
     setUploadError(null)
     setShowUploadLog(true)
+    setLiveUploadSteps(data.steps)
   }
 
   function handleUploadError(msg: string) {
+    setIsUploading(false)
     setUploadError(msg)
     setUploadInfo(null)
     setShowUploadLog(false)
@@ -38,7 +69,7 @@ export default function App() {
 
         <div className="space-y-3">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Document</p>
-          <FileUpload onSuccess={handleUploadSuccess} onError={handleUploadError} />
+          <FileUpload onStart={handleUploadStart} onSuccess={handleUploadSuccess} onError={handleUploadError} />
 
           {uploadError && (
             <p className="text-xs text-red-600">{uploadError}</p>
@@ -60,8 +91,8 @@ export default function App() {
             </div>
           )}
 
-          {showUploadLog && uploadInfo && uploadInfo.steps.length > 0 && (
-            <PipelineLog steps={uploadInfo.steps} title="Ingestion Pipeline" />
+          {showUploadLog && liveUploadSteps.length > 0 && (
+            <PipelineLog steps={liveUploadSteps} title="Ingestion Pipeline (Live)" />
           )}
         </div>
 
@@ -97,8 +128,18 @@ export default function App() {
           ))}
         </div>
 
-        {activeTab === 'ask' && <AskPage documentLoaded={documentLoaded} />}
-        {activeTab === 'extract' && <ExtractPage documentLoaded={documentLoaded} />}
+        {!documentLoaded && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="text-5xl mb-4">📄</div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">No document loaded</h2>
+            <p className="text-sm text-gray-400 max-w-xs">
+              Upload an insurance policy PDF using the sidebar to get started.
+              The agent will parse, chunk, embed, and index it automatically.
+            </p>
+          </div>
+        )}
+        {documentLoaded && activeTab === 'ask' && <AskPage documentLoaded={documentLoaded} />}
+        {documentLoaded && activeTab === 'extract' && <ExtractPage documentLoaded={documentLoaded} />}
       </main>
     </div>
   )

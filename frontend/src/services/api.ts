@@ -58,3 +58,8 @@ export async function extractPolicy(): Promise<ExtractResponse> {
 export async function clearStore(): Promise<void> {
   await api.delete('/store')
 }
+
+export async function getLogs(): Promise<{ steps: string[] }> {
+  const { data } = await api.get('/logs')
+  return data
+}

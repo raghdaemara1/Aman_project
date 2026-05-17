@@ -1,46 +1,94 @@
 import os
+import hashlib
 import tempfile
 import datetime
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from core.parser import parse_and_chunk
-from core.vectorstore import ingest_documents, has_documents, clear_store, get_retriever
+from core.vectorstore import ingest_documents, has_documents, clear_store, get_retriever, get_chunks
 from core.agent import run_agent
 from core.extractor import extract_policy_data
 
 router = APIRouter()
+
+# Thread pool for running synchronous Ollama/embedding calls without blocking the event loop
+_executor = ThreadPoolExecutor(max_workers=2)
+
+# Shared pipeline step log — cleared at the start of each operation
+current_pipeline_steps: list[str] = []
+last_uploaded_hash: str | None = None
+
+
+def _run(fn):
+    """Run a blocking function in the thread pool and await it."""
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(_executor, fn)
 
 
 class AskRequest(BaseModel):
     query: str
 
 
+@router.get("/logs")
+async def get_logs():
+    """Return current pipeline steps. Polled by frontend during long operations."""
+    return {"steps": list(current_pipeline_steps)}
+
+
 @router.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
+    global current_pipeline_steps, last_uploaded_hash
+    current_pipeline_steps.clear()
+
+    print(f"\n>>> [API] Upload received: {file.filename}")
+
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=415, detail="Only PDF files are accepted.")
 
     content = await file.read()
+    file_hash = hashlib.md5(content).hexdigest()
+
+    # Skip re-ingestion if same file is already indexed
+    if last_uploaded_hash == file_hash and has_documents():
+        print(">>> [API] Same file already indexed — skipping re-ingestion")
+        current_pipeline_steps.append(f"Same document already indexed (MD5: {file_hash[:8]}…) — skipping re-ingestion")
+        chunk_count = len(get_chunks())
+        return {
+            "chunks_indexed": chunk_count,
+            "metadata": {
+                "filename": file.filename,
+                "pages": 1,
+                "indexed_at": datetime.datetime.utcnow().isoformat() + "Z",
+            },
+            "steps": list(current_pipeline_steps),
+        }
 
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(content)
         tmp_path = tmp.name
 
-    steps: list[str] = []
     try:
-        chunks = parse_and_chunk(tmp_path, steps=steps)
+        # Parse in thread — doesn't need Ollama but keeps pattern consistent
+        print(">>> [API] Parsing PDF...")
+        chunks = await _run(lambda: parse_and_chunk(tmp_path, steps=current_pipeline_steps))
+
         if not chunks:
             raise HTTPException(
                 status_code=422,
                 detail="Could not parse the PDF. The file may be corrupt or password-protected.",
             )
 
-        ingest_documents(chunks, steps=steps)
+        # Embed + ingest in thread — Ollama embeddings are blocking
+        print(f">>> [API] Embedding {len(chunks)} chunks (Ollama running in background)...")
+        await _run(lambda: ingest_documents(chunks, steps=current_pipeline_steps))
 
         page_numbers = [c.metadata.get("page_number", 1) for c in chunks]
         page_count = max(page_numbers) if page_numbers else 1
-
-        steps.append(f"Document ready — {len(chunks)} chunks indexed and searchable")
+        current_pipeline_steps.append(f"Document ready — {len(chunks)} chunks indexed and searchable")
+        last_uploaded_hash = file_hash
+        print(">>> [API] Upload complete!")
 
         return {
             "chunks_indexed": len(chunks),
@@ -49,11 +97,12 @@ async def upload_document(file: UploadFile = File(...)):
                 "pages": page_count,
                 "indexed_at": datetime.datetime.utcnow().isoformat() + "Z",
             },
-            "steps": steps,
+            "steps": list(current_pipeline_steps),
         }
     except HTTPException:
         raise
     except Exception as e:
+        print(f">>> [API] Upload error: {e}")
         raise HTTPException(status_code=422, detail=f"Could not parse the PDF: {str(e)}")
     finally:
         try:
@@ -64,6 +113,11 @@ async def upload_document(file: UploadFile = File(...)):
 
 @router.post("/ask")
 async def ask_question(request: AskRequest):
+    global current_pipeline_steps
+    current_pipeline_steps.clear()
+
+    print(f"\n>>> [API] Question: '{request.query}'")
+
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
@@ -73,37 +127,53 @@ async def ask_question(request: AskRequest):
             detail="No document indexed. Please upload a PDF first.",
         )
 
-    steps: list[str] = []
     try:
-        result = run_agent(request.query, steps=steps)
+        # Run agent in thread — LLM inference is blocking
+        print(">>> [API] Running agent (Ollama in background)...")
+        result = await _run(lambda: run_agent(request.query, steps=current_pipeline_steps))
+        print(">>> [API] Agent done.")
         return result
     except Exception as e:
+        print(f">>> [API] Agent error: {e}")
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
 
 @router.post("/extract")
 async def extract_data():
+    global current_pipeline_steps
+    current_pipeline_steps.clear()
+
+    print("\n>>> [API] Extract request received")
+
     if not has_documents():
         raise HTTPException(
             status_code=409,
             detail="No document indexed. Please upload a PDF first.",
         )
 
-    steps: list[str] = []
-    steps.append("Starting structured extraction pipeline")
+    current_pipeline_steps.append("Starting structured extraction pipeline")
     try:
         retriever = get_retriever(k=10)
-        policy_data = extract_policy_data(retriever, steps=steps)
+        # Run extraction in thread — Ollama LLM call is blocking
+        print(">>> [API] Running Pydantic extractor (Ollama in background)...")
+        policy_data = await _run(
+            lambda: extract_policy_data(retriever, steps=current_pipeline_steps)
+        )
+        print(">>> [API] Extraction complete!")
         return {
             "data": policy_data.model_dump(),
-            "steps": steps,
+            "steps": list(current_pipeline_steps),
         }
     except Exception as e:
+        print(f">>> [API] Extraction error: {e}")
         raise HTTPException(status_code=500, detail=f"Extraction error: {str(e)}")
 
 
 @router.delete("/store")
 async def clear_document_store():
+    global current_pipeline_steps, last_uploaded_hash
+    current_pipeline_steps.clear()
+    last_uploaded_hash = None
     try:
         clear_store()
         return {"cleared": True}
