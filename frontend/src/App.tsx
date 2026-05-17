@@ -64,7 +64,7 @@ export default function App() {
       <aside className="w-72 bg-white border-r border-gray-200 flex flex-col p-5 gap-5 overflow-y-auto">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">IntelliDoc</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Insurance Document Agent</p>
+          <p className="text-xs text-gray-500 mt-0.5">Aman Finance Contract Agent</p>
         </div>
 
         <div className="space-y-3">
@@ -103,7 +103,7 @@ export default function App() {
           <div className="mt-2 space-y-1 leading-relaxed">
             <p>1. PDF is parsed and split into 500-token chunks.</p>
             <p>2. Chunks are embedded and stored in ChromaDB.</p>
-            <p>3. A LangChain ReAct agent chooses between <strong>hybrid search</strong> (BM25 + vector + RRF) and <strong>structured extraction</strong> (Pydantic schema) to answer your question.</p>
+            <p>3. A LangGraph ReAct agent chooses between <strong>hybrid search</strong> (BM25 + vector + RRF) and <strong>structured extraction</strong> (Pydantic schema) to answer your question.</p>
             <p>4. Source chunks and the tool used are always shown.</p>
           </div>
         </details>
@@ -123,7 +123,7 @@ export default function App() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab === 'ask' ? 'Ask a Question' : 'Extract Policy Data'}
+              {tab === 'ask' ? 'Ask a Question' : 'Extract Contract Data'}
             </button>
           ))}
         </div>
@@ -133,7 +133,7 @@ export default function App() {
             <div className="text-5xl mb-4">📄</div>
             <h2 className="text-lg font-semibold text-gray-700 mb-2">No document loaded</h2>
             <p className="text-sm text-gray-400 max-w-xs">
-              Upload an insurance policy PDF using the sidebar to get started.
+              Upload a consumer finance contract PDF using the sidebar to get started.
               The agent will parse, chunk, embed, and index it automatically.
             </p>
           </div>

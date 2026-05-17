@@ -1,18 +1,18 @@
-import type { PolicyData } from '../services/api'
+import type { ContractData } from '../services/api'
 
 interface Props {
-  data: PolicyData
+  data: ContractData
 }
 
-const FIELD_LABELS: [keyof PolicyData, string][] = [
-  ['policy_number', 'Policy Number'],
-  ['policy_holder', 'Policy Holder'],
-  ['coverage_type', 'Coverage Type'],
-  ['start_date', 'Start Date'],
-  ['end_date', 'End Date / Expiry'],
-  ['premium_amount', 'Premium Amount'],
-  ['coverage_limit', 'Coverage Limit'],
-  ['key_exclusions', 'Key Exclusions'],
+const FIELD_LABELS: [keyof ContractData, string][] = [
+  ['contract_number', 'Contract Number'],
+  ['customer_name', 'Customer Name'],
+  ['product_financed', 'Product Financed'],
+  ['total_amount', 'Total Financed Amount'],
+  ['monthly_installment', 'Monthly Installment'],
+  ['duration_months', 'Duration'],
+  ['profit_rate', 'Profit Rate'],
+  ['key_conditions', 'Key Conditions & Penalties'],
 ]
 
 export default function ExtractTable({ data }: Props) {
@@ -21,7 +21,7 @@ export default function ExtractTable({ data }: Props) {
       <table className="w-full text-sm">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left font-medium text-gray-600 w-44">Field</th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600 w-52">Field</th>
             <th className="px-4 py-3 text-left font-medium text-gray-600">Value</th>
           </tr>
         </thead>
@@ -30,11 +30,11 @@ export default function ExtractTable({ data }: Props) {
             <tr key={field} className="hover:bg-gray-50">
               <td className="px-4 py-3 text-gray-500 font-medium align-top">{label}</td>
               <td className="px-4 py-3 text-gray-900">
-                {field === 'key_exclusions' ? (
-                  Array.isArray(data.key_exclusions) && data.key_exclusions.length > 0 ? (
+                {field === 'key_conditions' ? (
+                  Array.isArray(data.key_conditions) && data.key_conditions.length > 0 ? (
                     <ul className="list-disc list-inside space-y-1">
-                      {data.key_exclusions.map((ex, i) => (
-                        <li key={i}>{ex}</li>
+                      {data.key_conditions.map((c, i) => (
+                        <li key={i}>{c}</li>
                       ))}
                     </ul>
                   ) : (

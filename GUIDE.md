@@ -1,33 +1,49 @@
 # IntelliDoc — Interview Preparation Guide
 
-> Everything you need to explain this app confidently in an interview:
+> Everything you need to explain this app confidently at the Aman interview:
 > pipelines, concepts, output shapes, design decisions, and likely questions.
+> All examples use Aman's real business domain: consumer finance contracts.
 
 ---
 
 ## Table of Contents
 
 1. [What the App Does — One Paragraph](#what-the-app-does)
-2. [The Full Architecture](#the-full-architecture)
-3. [Pipeline 1 — Upload & Indexing](#pipeline-1--upload--indexing)
-4. [Pipeline 2 — Agentic Q&A](#pipeline-2--agentic-qa)
-5. [Pipeline 3 — Structured Extraction](#pipeline-3--structured-extraction)
-6. [Key Concepts Explained Simply](#key-concepts-explained-simply)
-7. [Actual Output Shapes (with real examples)](#actual-output-shapes)
-8. [Design Decisions & Why](#design-decisions--why)
-9. [Likely Interview Questions & Strong Answers](#likely-interview-questions--strong-answers)
-10. [What You'd Change in Production](#what-youd-change-in-production)
+2. [Why This Is Relevant to Aman](#why-this-is-relevant-to-aman)
+3. [The Full Architecture](#the-full-architecture)
+4. [Pipeline 1 — Upload & Indexing](#pipeline-1--upload--indexing)
+5. [Pipeline 2 — Agentic Q&A](#pipeline-2--agentic-qa)
+6. [Pipeline 3 — Structured Extraction](#pipeline-3--structured-extraction)
+7. [Key Concepts Explained Simply](#key-concepts-explained-simply)
+8. [Actual Output Shapes (with real examples)](#actual-output-shapes)
+9. [Design Decisions & Why](#design-decisions--why)
+10. [Likely Interview Questions & Strong Answers](#likely-interview-questions--strong-answers)
+11. [What You'd Change in Production at Aman](#what-youd-change-in-production)
 
 ---
 
 ## What the App Does
 
-IntelliDoc is a **local, privacy-first Agentic RAG system** for insurance documents. You upload any insurance policy PDF. The system parses it, chunks it into 500-token segments, embeds every chunk using a local AI model (`nomic-embed-text`), and stores them in a vector database (ChromaDB). From that point you can:
+IntelliDoc is a **local, privacy-first Agentic RAG system** for consumer finance documents. You upload any Aman installment contract PDF. The system parses every page, splits it into 500-token chunks, embeds each chunk using a local AI model (`nomic-embed-text`), and stores them in ChromaDB. From there you can:
 
-- **Ask any question** in plain English — a LangChain ReAct agent reasons about HOW to answer, picks the right tool (semantic search vs. structured extraction), retrieves the relevant text, and generates a grounded answer with source citations.
-- **Extract structured data** with one click — the LLM reads all indexed chunks and fills a strict Pydantic schema with 8 key policy fields.
+- **Ask any question** in plain English — a LangGraph ReAct agent reasons about HOW to answer, picks the right tool (semantic search vs. structured extraction), retrieves the relevant text, and generates a grounded answer with source citations.
+- **Extract structured data** with one click — the LLM reads all indexed chunks and fills a strict Pydantic schema with 8 key contract fields.
 
-Everything runs 100% locally. No API key. No cloud. No data leaves the machine.
+Everything runs 100% locally. No API key. No cloud. No customer data leaves the machine.
+
+---
+
+## Why This Is Relevant to Aman
+
+Aman issues consumer finance installment contracts for electronics, furniture, cars, and tourism packages through its stores, e-commerce platform, and Super App. Each contract contains:
+
+- Customer identity and financial terms
+- Monthly installment amounts and profit rates
+- Repayment schedules and maturity dates
+- Late payment fees, early settlement conditions
+- Takaful (Islamic insurance) coverage details
+
+**The problem IntelliDoc solves:** A branch agent or operations analyst needs to quickly answer a customer's question about their contract — "Can I settle early?", "What is my monthly payment?", "What happens if I miss a payment?" — without reading the full document. IntelliDoc turns any contract PDF into a queryable, structured knowledge base in under 30 seconds.
 
 ---
 
@@ -48,14 +64,14 @@ FastAPI Backend (Python, port 8000)
         │  Local HTTP (port 11434)
         ▼
 Ollama (local AI runtime)
-   ├── llama3.1:latest        → reasoning, generation, extraction
+   ├── llama3.1:latest        → reasoning, generation, structured extraction
    └── nomic-embed-text:latest → text → 768-dim vectors
 ```
 
 **Data layer:**
 - `ChromaDB` — persistent vector store on disk (`./chroma_db/`)
-- `BM25` (rank-bm25) — keyword index built in-memory on each upload
-- Both combined via **Reciprocal Rank Fusion (RRF)** for hybrid search
+- `BM25` (rank-bm25) — keyword index rebuilt in-memory on each upload
+- Both combined via **RRF (Reciprocal Rank Fusion)** for hybrid search
 
 ---
 
@@ -66,72 +82,58 @@ Ollama (local AI runtime)
 ### Step-by-step
 
 ```
-User uploads PDF
-      │
-      ▼
 1. Validate content type = application/pdf
 
 2. Compute MD5 hash of file bytes
-   └── If same hash + documents already in ChromaDB → skip re-ingestion
-       (Document Memory feature — avoids re-embedding the same file)
+   └── Same hash + documents already in ChromaDB → skip re-ingestion
+       ("Document Memory" — avoids re-embedding the same contract)
 
 3. Save to temp file → parse with pypdf
-   └── Loop through each page → extract raw text
-   └── Skip blank pages
-   └── Output: list of Document objects, one per page, with metadata:
+   └── Extract raw text from each page
+   └── Output: one Document object per page with metadata:
        { page_number: int, source: str }
 
 4. Chunk with RecursiveCharacterTextSplitter
-   └── chunk_size = 500 tokens
-   └── chunk_overlap = 50 tokens
-   └── Why overlap? So a sentence split across a boundary
-       is still fully present in at least one chunk.
-   └── Output: N Document objects, each with:
-       { page_number: int, source: str, chunk_index: int }
+   └── chunk_size = 500 tokens, chunk_overlap = 50 tokens
+   └── Overlap: a sentence split across a boundary is still fully
+       present in at least one chunk — no context is ever lost
+   └── Each chunk gets: { page_number, source, chunk_index }
 
-5. Embed each chunk with nomic-embed-text via Ollama
+5. Embed each chunk with nomic-embed-text
    └── Each chunk → 768-dimensional float vector
-   └── These vectors capture semantic meaning, not just keywords
+   └── Vectors capture semantic meaning (not just keywords)
 
-6. Store vectors in ChromaDB (persisted to disk)
-   └── Collection name: "insurance_docs"
+6. Store in ChromaDB (persisted to ./chroma_db/)
 
 7. Cache all chunks in memory for BM25 (rebuilt on each upload)
 ```
 
-### Real example output from the UI
+### Real example log output
 
 ```
-Step 1: Received: tmp8tpsiujh.pdf (88.1 KB)
-Step 2: Parsing PDF with pypdf...
-Step 3: Extracted text from 10 pages (10 with content)
-Step 4: Splitting into chunks (size=500 tokens, overlap=50)...
-Step 5: Created 53 chunks from 10 pages
-Step 6: Clearing previous document store...
-Step 7: Generating embeddings with nomic-embed-text (model: nomic-embed-text:latest)...
-Step 8: Stored 53 vectors in ChromaDB (collection: insurance_docs)
-Step 9: BM25 keyword index built over 53 chunks
-Step 10: Document ready — 53 chunks indexed and searchable
+Step 1:  Received: aman_contract_047832.pdf (92.4 KB)
+Step 2:  Parsing PDF with pypdf...
+Step 3:  Extracted text from 6 pages (6 with content)
+Step 4:  Splitting into chunks (size=500 tokens, overlap=50)...
+Step 5:  Created 38 chunks from 6 pages
+Step 6:  Clearing previous document store...
+Step 7:  Generating embeddings with nomic-embed-text...
+Step 8:  Stored 38 vectors in ChromaDB (collection: insurance_docs)
+Step 9:  BM25 keyword index built over 38 chunks
+Step 10: Document ready — 38 chunks indexed and searchable
 ```
 
 ### API response shape
 
 ```json
 {
-  "chunks_indexed": 53,
+  "chunks_indexed": 38,
   "metadata": {
-    "filename": "tmp8tpsiujh.pdf",
-    "pages": 10,
+    "filename": "aman_contract_047832.pdf",
+    "pages": 6,
     "indexed_at": "2025-05-17T10:30:00Z"
   },
-  "steps": [
-    "Received: policy.pdf (88.1 KB)",
-    "Parsing PDF with pypdf...",
-    "Extracted text from 10 pages (10 with content)",
-    "Splitting into chunks (size=500 tokens, overlap=50)...",
-    "Created 53 chunks from 10 pages",
-    "..."
-  ]
+  "steps": ["Received: aman_contract_047832.pdf (92.4 KB)", "..."]
 }
 ```
 
@@ -141,8 +143,6 @@ Step 10: Document ready — 53 chunks indexed and searchable
 
 **Triggered by:** `POST /api/v1/ask` with `{ "query": "..." }`
 
-This is the "agentic" part — the AI does not just retrieve and answer. It **reasons** about which strategy to use.
-
 ### The ReAct Loop
 
 ReAct = **Reason + Act**. The agent loops:
@@ -150,79 +150,71 @@ ReAct = **Reason + Act**. The agent loops:
 Thought → Action → Observation → Thought → Action → ... → Final Answer
 ```
 
-### The two tools
+The agent does NOT just run a search on every question. It reasons about which strategy fits the question, then acts accordingly.
 
-| Tool | When the agent picks it | How it works |
-|------|------------------------|--------------|
-| `hybrid_search` | General questions about coverage, terms, conditions, "what does this say about X" | BM25 + ChromaDB vector search merged via RRF |
-| `structured_extract` | Specific field lookups: policy number, expiry date, premium, holder name, limits, exclusions | Runs full Pydantic extraction → returns the specific field |
+### The Two Tools
 
-### Hybrid Search detail (Tool 1)
+| Tool | When agent picks it | How it works |
+|---|---|---|
+| `hybrid_search` | General questions about terms, conditions, processes, "what does the contract say about X" | BM25 + ChromaDB merged via RRF → top-4 chunks → LLM generates answer |
+| `structured_extract` | Specific field lookups: contract number, customer name, amount, installment, rate, duration, conditions | Fills ContractData Pydantic schema → returns the specific field |
+
+### Hybrid Search Detail (Tool 1)
 
 ```
-Query: "what is covered under hospitalization?"
+Query: "what happens if I miss a payment?"
          │
-         ├── BM25 keyword search over 53 chunks
-         │   └── Tokenizes query + chunks → TF-IDF style scoring
-         │   └── Great for: exact terms, policy numbers, dates
+         ├── BM25 keyword search over all chunks
+         │   Tokenizes + scores by TF-IDF
+         │   Good for: "late payment", "missed installment", "penalty"
          │
          ├── ChromaDB vector search (top-4)
-         │   └── Embeds query with nomic-embed-text → cosine similarity
-         │   └── Great for: semantics, concepts, paraphrases
+         │   Embeds query → cosine similarity search
+         │   Good for: concepts, paraphrases, "consequences of non-payment"
          │
          └── RRF merge (k=60)
-             └── RRF score = 1/(rank + 60) for each result
-             └── Sum scores from both ranked lists
-             └── Re-rank by combined score → top-4 chunks returned
+             Score = 1/(rank + 60) from each list
+             Sum scores → re-rank → top-4 chunks returned to agent
 ```
 
-**Why RRF and not averaging scores?**
-Scores from BM25 and cosine similarity are on completely different scales. RRF only uses the rank position, not the raw score, so it's scale-invariant.
+### Example Agent Reasoning (ReAct trace)
 
-### Step-by-step flow
-
+**Question: "What is the monthly installment?"**
 ```
-POST /ask  { "query": "What is the coverage limit?" }
-      │
-      ▼
-has_documents() check → 409 if no document uploaded yet
-      │
-      ▼
-run_agent(query, steps=[]) called in thread pool (non-blocking)
-      │
-      ▼
-LangGraph ReAct agent initialised:
-  model = ChatOllama("llama3.1:latest", temperature=0)
-  tools = [hybrid_search, structured_extract]
-  system_prompt = "You are an insurance intelligence agent..."
-      │
-      ▼
-Agent reasons:
-  Thought: "coverage limit" is a specific field → use structured_extract
-  Action: structured_extract("coverage limit")
-  Observation: "$25,000.00"
-  Final Answer: "The coverage limit is $25,000.00 per accident."
-      │
-      ▼
-Parse messages list:
-  - Last AIMessage.content → answer text
-  - First AIMessage.tool_calls[0].name → tool_used
-  - ToolMessage.content → source_chunks + page_refs
+Thought: The user is asking for a specific field — the monthly installment amount.
+         This is a precise value, not a general question. I should use structured_extract.
+Action:  structured_extract("monthly installment")
+Observation: "EGP 1,458.33 / month"
+Thought: I have the exact value.
+Final Answer: The monthly installment is EGP 1,458.33.
 ```
 
-### API response shape
+**Question: "Can I pay off the contract early?"**
+```
+Thought: This is a general question about early settlement terms.
+         I need to find the relevant contract clause. I should use hybrid_search.
+Action:  hybrid_search("early settlement early payment payoff")
+Observation: Page 3: "The customer may settle the remaining balance in full at any time.
+             An early settlement fee of 1% of the outstanding principal applies
+             if settlement occurs within the first 12 months..."
+Thought: I found the relevant clause.
+Final Answer: Yes, you can settle early. A 1% fee applies if you do so within
+              the first 12 months. No fee after 12 months.
+```
+
+### API Response Shape
 
 ```json
 {
-  "answer": "The coverage limit is $25,000 per accident as specified in the policy declarations.",
+  "answer": "The monthly installment is EGP 1,458.33 per month.",
   "tool_used": "structured_extract",
   "source_chunks": [
-    "Maximum Benefit: $25,000 per accident. Coverage applies to accidental bodily injury..."
+    "Monthly Installment: EGP 1,458.33 / month\nTotal Repayment Amount: EGP 35,000..."
   ],
   "page_refs": [1],
   "steps": [
-    "Query received: \"What is the coverage limit?\"",
-    "Initializing ReAct agent (llama3.1:latest + 2 tools: hybrid_search, structured_extract)",
+    "Query received: \"What is the monthly installment?\"",
+    "Initializing ReAct agent (llama3.1:latest + 2 tools)",
     "Agent reasoning — selecting tool...",
     "Tool selected: structured_extract",
     "Retrieved 1 source chunk(s)",
@@ -232,105 +224,92 @@ Parse messages list:
 }
 ```
 
-### Example Q&A pairs (what to demo)
+### Question-to-Tool Mapping (Demo Examples)
 
-| Question type | Example question | Tool the agent picks | Why |
-|---|---|---|---|
-| Specific field | "What is the policy number?" | `structured_extract` | Exact identifier lookup |
-| Specific field | "When does this policy expire?" | `structured_extract` | Date field lookup |
-| Specific field | "Who is the policy holder?" | `structured_extract` | Named field |
-| General/conceptual | "What sports are excluded?" | `hybrid_search` | Requires reading coverage text |
-| General/conceptual | "What happens if I need treatment abroad?" | `hybrid_search` | Requires understanding a clause |
-| General/conceptual | "What is the claims procedure?" | `hybrid_search` | Narrative answer from document text |
+| Question | Tool | Why |
+|---|---|---|
+| "What is the contract number?" | `structured_extract` | Exact identifier |
+| "What is the monthly installment?" | `structured_extract` | Specific numeric field |
+| "Who is the customer?" | `structured_extract` | Named field |
+| "What is the profit rate?" | `structured_extract` | Specific rate field |
+| "What are the late payment penalties?" | `hybrid_search` | Clause content |
+| "Can I settle this contract early?" | `hybrid_search` | Process/condition question |
+| "What is covered by Takaful?" | `hybrid_search` | Coverage clause |
+| "What happens if I miss 3 payments?" | `hybrid_search` | Consequence clause |
 
 ---
 
 ## Pipeline 3 — Structured Extraction
 
-**Triggered by:** `POST /api/v1/extract` (no body needed)
-
-This pipeline does NOT go through the agent. It calls `extractor.py` directly.
+**Triggered by:** `POST /api/v1/extract`
 
 ### Step-by-step
 
 ```
-POST /extract
-      │
-      ▼
-has_documents() check → 409 if empty
-      │
-      ▼
-get_chunks() → all cached Document objects
-      │
-      ▼
-Sort all chunks by page_number (page 1 first — always)
-      │
-      ▼
-Build full context string:
-  "===== PAGE 1 =====\n[chunk text]\n[chunk text]\n
-   ===== PAGE 2 =====\n[chunk text]\n..."
-  └── Trimmed to 6000 chars if longer (context window limit)
-      │
-      ▼
-Primary strategy: llm.with_structured_output(PolicyData)
-  └── LangChain sends PolicyData schema as a tool definition
-  └── llama3.1 MUST return a JSON matching that schema
-  └── Pydantic validates it → typed Python object
-      │
-      ├── SUCCESS → return PolicyData
-      │
-      └── FAILURE (LLM refused schema) → JSON fallback:
-          └── Re-prompt with format="json" (Ollama JSON mode)
-          └── Parse raw JSON → construct PolicyData manually
+1. Load all cached Document objects from memory (or reload from ChromaDB)
+
+2. Sort by page_number — page 1 ALWAYS first
+   (contract header: number, customer, financial terms are on page 1)
+
+3. Build full context string:
+   "===== PAGE 1 =====\n[chunk]\n[chunk]\n
+    ===== PAGE 2 =====\n[chunk]..."
+   Trim to 6,000 characters
+
+4. Primary: llm.with_structured_output(ContractData)
+   LangChain sends ContractData schema as a JSON tool definition
+   llama3.1 must call the tool with matching JSON
+   Pydantic validates all 8 fields and types
+
+5. Fallback (if tool-calling fails):
+   Re-prompt with format="json" (Ollama JSON mode)
+   Parse raw JSON response → construct ContractData manually
 ```
 
-### The Pydantic Schema (PolicyData)
+### The Pydantic Schema (ContractData)
 
 ```python
-class PolicyData(BaseModel):
-    policy_number:  str        # e.g. "US151741"
-    policy_holder:  str        # e.g. "School District of Hillsborough County"
-    coverage_type:  str        # e.g. "Accident Only Policy"
-    start_date:     str        # e.g. "August 1, 2013"
-    end_date:       str        # e.g. "August 1, 2014"
-    premium_amount: str        # e.g. "$3.75 (Day Care), $3.50 (Summer)"
-    coverage_limit: str        # e.g. "$25,000.00"
-    key_exclusions: list[str]  # e.g. ["Pre-existing conditions", "Dental care"]
+class ContractData(BaseModel):
+    contract_number:    str        # "AMAN-FIN-2025-CF-047832"
+    customer_name:      str        # "Sara Ahmed Mahmoud"
+    product_financed:   str        # "Samsung QLED 65-inch Smart TV"
+    total_amount:       str        # "EGP 25,000"
+    monthly_installment:str        # "EGP 1,458.33 / month"
+    duration_months:    str        # "24 months"
+    profit_rate:        str        # "2.5% per month (flat rate)"
+    key_conditions:     list[str]  # ["Late fee EGP 75/month", "Early settlement 1%..."]
 ```
 
-### Real output from the app (from the screenshot)
+### Real Output Shape
 
 ```json
 {
   "data": {
-    "policy_number":   "US151741",
-    "policy_holder":   "School District of Hillsborough County",
-    "coverage_type":   "Accident Only Policy",
-    "start_date":      "August 1, 2013",
-    "end_date":        "August 1, 2014",
-    "premium_amount":  "$3.75 (Day Care), $3.50 (Summer), $7.50 (Community Based Training)",
-    "coverage_limit":  "$25,000.00",
-    "key_exclusions":  [
-      "Pre-existing conditions",
-      "Injuries from war or civil commotion",
-      "Self-inflicted injuries",
-      "Treatment not medically necessary"
+    "contract_number":     "AMAN-FIN-2025-CF-047832",
+    "customer_name":       "Sara Ahmed Mahmoud",
+    "product_financed":    "Samsung QLED 65-inch Smart TV (Model: QN65Q80C)",
+    "total_amount":        "EGP 25,000",
+    "monthly_installment": "EGP 1,458.33 / month",
+    "duration_months":     "24 months",
+    "profit_rate":         "2.5% per month (flat rate)",
+    "key_conditions": [
+      "Late payment fee: EGP 75/month after 7 days grace period",
+      "3 missed payments: full balance declared immediately due",
+      "Bounced direct debit fee: EGP 150 per occurrence",
+      "Early settlement fee: 1% of outstanding principal (first 12 months only)",
+      "Ownership transfers to customer upon full repayment"
     ]
   },
   "steps": [
     "Starting structured extraction pipeline",
     "Building extraction context from all indexed chunks...",
-    "Using 53 cached chunks with page metadata",
-    "Context built: 6015 characters (page 1 first)",
+    "Using 38 cached chunks with page metadata",
+    "Context built: 5,842 characters (page 1 first)",
     "Sending to llama3.1 — structured output mode (tool-calling)...",
     "[OK] Extraction complete - 8/8 fields populated"
   ]
 }
 ```
-
-### Why page 1 is always pinned first
-
-The declarations page (policy number, holder, effective dates) is almost always on page 1. But the chunker splits the document into 500-token pieces — it does not know which chunk contains "Policy Number:". Semantic search for "policy number" fails because the string has no semantic relationship to its value. By sorting all chunks with page 1 first, the LLM always sees the declarations page in its context window first, making it reliable.
 
 ---
 
@@ -338,164 +317,76 @@ The declarations page (policy number, holder, effective dates) is almost always 
 
 ### RAG (Retrieval-Augmented Generation)
 
-Instead of asking the LLM a question from memory, you first **retrieve** relevant text from your document, then feed that text + question to the LLM to **generate** an answer. The LLM only answers from the provided text. This prevents hallucination and grounds the answer in the actual document.
+Instead of asking the LLM a question from memory (where it could hallucinate), you first **retrieve** relevant text from your document, then feed that text + question to the LLM to **generate** a grounded answer.
 
 ```
-Without RAG: LLM makes up an answer from training data
-With RAG:    LLM reads the actual document text, then answers
+Without RAG:  LLM guesses from training data → may hallucinate
+With RAG:     LLM reads actual contract text → grounded, citable answer
 ```
 
 ### Agentic RAG vs. Basic RAG
 
-| Basic RAG | Agentic RAG |
+| Basic RAG | Agentic RAG (IntelliDoc) |
 |---|---|
-| Always does the same retrieval step | Agent DECIDES which retrieval strategy to use |
-| One tool: vector search | Two tools: hybrid_search OR structured_extract |
-| No reasoning about how to answer | ReAct loop: Thought → Action → Observation → Answer |
-| Good for general Q&A | Good when different question types need different approaches |
+| Always runs vector search | Agent DECIDES which retrieval to use |
+| One strategy fits all questions | Two tools: search OR structured extract |
+| No reasoning step | ReAct: Thought → Action → Observation → Answer |
 
 ### Vector Embeddings
 
-`nomic-embed-text` converts each 500-token chunk into a 768-dimensional vector (an array of 768 floats). Chunks about similar topics end up with similar vectors — their cosine distance is small. When you search, your query gets embedded the same way, and ChromaDB finds the chunks whose vectors are closest.
+`nomic-embed-text` converts each chunk into 768 floats. Similar text → similar vectors → small cosine distance. Used for semantic search.
 
 ```
-"hospitalization coverage"  → [0.21, -0.04, 0.87, ...]  (768 numbers)
-"inpatient admission care"  → [0.19, -0.06, 0.85, ...]  (very similar → high cosine similarity)
-"policy renewal date"       → [-0.44, 0.72, -0.12, ...]  (very different)
+"monthly repayment amount"   → [0.21, -0.04, ...]  (768 numbers)
+"installment per month"      → [0.19, -0.06, ...]  (very similar → high cosine similarity)
+"contract cancellation"      → [-0.44, 0.72, ...]  (very different)
 ```
 
 ### BM25
 
-BM25 (Best Match 25) is a keyword ranking algorithm. It scores documents based on:
-- **Term Frequency (TF)**: how often the search term appears in the chunk
-- **Inverse Document Frequency (IDF)**: rare terms score higher than common ones
-- **Document Length normalization**: penalizes very long chunks
-
-Great for exact matches: "policy number US151741" — no vector similarity needed.
+Keyword ranking by Term Frequency × Inverse Document Frequency. Great for exact strings like `AMAN-FIN-2025-CF-047832` — no vector relationship exists between a contract number and the query "what is the contract number?", but BM25 finds it perfectly.
 
 ### RRF (Reciprocal Rank Fusion)
 
-Combines two ranked lists into one. For each result:
+Merges BM25 and vector search ranked lists:
 ```
-RRF_score = 1 / (rank_in_bm25 + 60) + 1 / (rank_in_chroma + 60)
+RRF_score(doc) = 1/(bm25_rank + 60) + 1/(vector_rank + 60)
 ```
-The constant 60 prevents top-ranked results from dominating. Results appearing in both lists get double contribution. This is scale-invariant — it doesn't matter that BM25 scores are 0-100 and cosine similarity is 0-1.
+Scale-invariant — uses rank position, not raw scores. Documents in both lists get double contribution.
 
 ### ReAct (Reason + Act)
 
-A prompting pattern where the LLM alternates between:
-- **Thought**: reasoning about what to do next
-- **Action**: calling a tool with an input
-- **Observation**: reading the tool's output
-- Repeat until confident → **Final Answer**
-
-```
-Thought: The user is asking for the policy number, a specific field.
-Action: structured_extract("policy number")
-Observation: "US151741"
-Thought: I have the answer directly.
-Final Answer: The policy number is US151741.
-```
+LLM alternates between Thought (what should I do?) and Action (call a tool) until it has enough to answer. The key insight: the agent sees the tool output and can reason further before answering, instead of blindly returning whatever the tool returns.
 
 ### Pydantic Schema Enforcement
 
-When you call `llm.with_structured_output(PolicyData)`, LangChain sends the Pydantic schema as a JSON Schema to the LLM as a tool definition. The LLM must call that "tool" with arguments matching the schema. LangChain then wraps the result in a validated `PolicyData` object. If a field is missing or the wrong type, Pydantic raises a validation error — guaranteeing the output shape.
+`llm.with_structured_output(ContractData)` sends the Pydantic schema as a JSON Schema tool definition. The LLM must call that tool with arguments matching the schema. Pydantic validates the result. If `monthly_installment` is missing or the wrong type, it raises — guaranteeing the output shape every time.
 
 ### ChromaDB
 
-A local vector database that:
-- Persists vectors to disk (SQLite + binary files in `./chroma_db/`)
-- Supports cosine similarity search
-- Stores document text + metadata alongside each vector
-- Can be queried with a vector to return the k nearest neighbors
-
----
-
-## Actual Output Shapes
-
-### Upload response
-
-```json
-{
-  "chunks_indexed": 53,
-  "metadata": {
-    "filename": "policy.pdf",
-    "pages": 10,
-    "indexed_at": "2025-05-17T10:30:00Z"
-  },
-  "steps": ["...array of pipeline step strings..."]
-}
-```
-
-### Ask response
-
-```json
-{
-  "answer": "The policy number is US151741.",
-  "tool_used": "structured_extract",
-  "source_chunks": ["US151741 — School District of Hillsborough County..."],
-  "page_refs": [1],
-  "steps": ["...array of agent reasoning steps..."]
-}
-```
-
-### Extract response
-
-```json
-{
-  "data": {
-    "policy_number": "US151741",
-    "policy_holder": "School District of Hillsborough County",
-    "coverage_type": "Accident Only Policy",
-    "start_date": "August 1, 2013",
-    "end_date": "August 1, 2014",
-    "premium_amount": "$3.75 (Day Care), $3.50 (Summer), $7.50 (Community Based Training)",
-    "coverage_limit": "$25,000.00",
-    "key_exclusions": ["Pre-existing conditions", "War or civil commotion", "..."]
-  },
-  "steps": ["...6 pipeline steps..."]
-}
-```
-
-### Logs response (polled every 1s during operations)
-
-```json
-{
-  "steps": [
-    "Received: policy.pdf (88.1 KB)",
-    "Parsing PDF with pypdf...",
-    "Extracted text from 10 pages (10 with content)"
-  ]
-}
-```
+Local vector database. Persists to disk (`./chroma_db/` as SQLite + binary files). Supports cosine similarity search. Stores document text + metadata alongside each vector.
 
 ---
 
 ## Design Decisions & Why
 
-### Why hybrid search instead of pure vector search?
+**Why Hybrid Search instead of pure vector search?**
+Contract identifiers like `AMAN-FIN-2025-CF-047832` have no semantic relationship to the query "what is the contract number?" — vector search fails. BM25 catches it exactly. Combining both via RRF handles both exact lookups and conceptual questions in one step.
 
-Pure vector search misses exact identifiers. `"What is the policy number?"` embeds to a vector, but the policy number `US151741` has no semantic relationship to that query — it's just a string of characters. BM25 catches it perfectly via keyword match. Combining both via RRF gives the best of both worlds: concepts from vectors, exact matches from BM25.
+**Why two separate tools?**
+Search finds relevant text passages. Extraction fills a typed schema with validation. Keeping them separate forces the agent to reason explicitly about retrieval strategy. That reasoning step is what makes this "agentic" — without it, it's just basic RAG.
 
-### Why two tools instead of one?
+**Why Ollama instead of OpenAI?**
+Consumer finance contracts contain sensitive customer PII (national ID, bank account, name). Running everything locally means zero privacy risk for Aman customers — no data ever leaves the corporate machine. The LangChain abstraction makes switching to GPT-4o a one-line change if needed.
 
-Search and extraction are fundamentally different operations. `hybrid_search` finds **relevant text passages** — it returns the top chunks from the document. `structured_extract` **fills a schema** — it returns typed fields with validation. Mixing them in one tool means the agent loses the ability to reason about retrieval strategy. Separate tools force explicit, observable reasoning.
+**Why page 1 is always pinned first?**
+Contract headers (number, customer name, financial terms) are always on page 1, but chunking splits them into multiple pieces. Semantic search for "contract number" fails because the string has no vector relationship to its value. Sorting all chunks with page 1 first ensures the LLM always sees the key identifiers before anything else.
 
-### Why Ollama instead of OpenAI?
+**Why FastAPI with ThreadPoolExecutor?**
+Ollama calls are synchronous and blocking. Running them directly in async endpoints would freeze the entire event loop, making the `/logs` polling endpoint unresponsive during inference. The thread pool keeps the event loop free — the frontend can keep polling for progress updates while the LLM processes.
 
-Insurance documents are sensitive enterprise data. Running everything locally means zero privacy risk, zero API cost, and zero rate limits. The LangChain integration is identical — swapping `ChatOllama` for `ChatOpenAI` is a one-line change. For a production system this exact architecture could run on-premises at AMAN with no data leaving the corporate network.
-
-### Why temperature=0?
-
-For document Q&A and structured extraction, you want deterministic, factual answers — not creative ones. Temperature 0 means the LLM always picks the highest-probability next token, producing consistent, grounded responses. Temperature > 0 would introduce randomness that could cause the agent to hallucinate or pick wrong fields.
-
-### Why page 1 is always pinned in extraction?
-
-Policy declarations (number, holder, dates) are almost always on page 1, but chunking splits them across multiple chunks. Semantic search for "policy number" fails because the string has no vector relationship to its value. By sorting all chunks with page 1 first, the LLM always sees the declarations page first in its context window — making field extraction reliable.
-
-### Why FastAPI async with a ThreadPoolExecutor?
-
-Ollama calls (LLM inference + embeddings) are synchronous blocking operations. FastAPI is async. If you ran Ollama calls directly in an async endpoint, they would block the entire event loop, freezing all other requests. Running them in a `ThreadPoolExecutor` keeps the event loop free while the LLM processes — other API calls (like `/logs` polling) continue to respond.
+**Why temperature=0?**
+For contract Q&A and structured extraction, you need deterministic, factual answers. Temperature 0 means the model always picks the highest-probability token — consistent, grounded, no randomness that could cause hallucination or wrong fields.
 
 ---
 
@@ -503,55 +394,53 @@ Ollama calls (LLM inference + embeddings) are synchronous blocking operations. F
 
 **Q: What is RAG and why is it better than fine-tuning for this use case?**
 
-> RAG retrieves relevant text at inference time and gives it to the LLM as context. Fine-tuning bakes knowledge into model weights during training. For insurance documents, RAG is better because: (1) documents change — a fine-tuned model would need retraining every time a policy updates; (2) RAG provides traceable source citations; (3) RAG works with any document without retraining. Fine-tuning makes sense for teaching the model a new task or style, not for giving it access to new documents.
+> RAG retrieves relevant text from the document at inference time and gives it to the LLM as context. Fine-tuning bakes knowledge into model weights during training. For Aman's contracts, RAG is the right choice for three reasons: (1) contracts change — a new contract is immediately queryable after upload, with no retraining; (2) RAG gives traceable source citations so staff can verify answers; (3) RAG handles any document without any training. Fine-tuning makes sense for teaching the model a new reasoning style or task domain, not for giving it access to new documents.
 
 **Q: What makes this "agentic"?**
 
-> An agentic system reasons about HOW to accomplish a task, not just what to output. In IntelliDoc, the LangChain ReAct agent observes the user's question, thinks about what type of question it is, chooses between two tools based on that reasoning, executes the tool, reads the result, and decides whether it has enough to answer. A non-agentic system would just run vector search on every question regardless.
-
-**Q: What is the difference between the two retrieval tools?**
-
-> `hybrid_search` is for open-ended questions — it returns the most relevant text passages using BM25 + vector search merged via RRF, then the LLM generates an answer from those passages. `structured_extract` is for specific field lookups — it reads all document chunks and fills a typed Pydantic schema, guaranteeing the output has exactly the right fields in the right format. The agent picks the right tool based on whether the question is asking for a concept or a specific fact.
+> An agentic system reasons about HOW to accomplish a task, not just what to output. In IntelliDoc, the LangGraph ReAct agent observes the user's question, thinks about what type of question it is, chooses between two tools based on that reasoning, executes the tool, reads the result, and decides whether it has enough to answer. A non-agentic system would run the same vector search on every single question regardless. The agent's reasoning step is what separates this from basic RAG.
 
 **Q: How does hybrid search work?**
 
-> Two searches run in parallel: BM25 keyword search scores chunks by term frequency-inverse document frequency (good for exact matches like policy numbers), and ChromaDB vector search finds semantically similar chunks by cosine distance of embeddings (good for concepts). Both return ranked lists. Reciprocal Rank Fusion merges them by combining rank-based scores (1 / rank + 60) — scale-invariant because it uses rank position, not raw scores. The top-4 chunks by combined RRF score are returned to the agent.
+> Two searches run in parallel: BM25 scores chunks by term frequency-inverse document frequency — great for exact matches like contract numbers, amounts, and dates. ChromaDB vector search finds semantically similar chunks by cosine distance of 768-dim embeddings — great for concepts like "early settlement" or "late payment consequences". Both return ranked lists. Reciprocal Rank Fusion merges them using rank position (1 / rank + 60) — scale-invariant because it doesn't care that BM25 scores are 0-100 and cosine similarity is 0-1. The top-4 results by combined RRF score go to the agent.
 
-**Q: Why does the extraction pipeline put page 1 first?**
+**Q: What is the difference between your two tools?**
 
-> The declarations page contains the policy number, holder name, and effective dates — critical fields that appear as exact strings like "Policy Number: US151741". These have no semantic meaning a vector search can exploit. By sorting chunks so page 1 always comes first in the context, the LLM reliably sees these identifiers before any other content, making extraction accurate regardless of how chunking splits the page.
+> `hybrid_search` is for open-ended questions — it retrieves the most relevant text passages and the LLM synthesizes an answer. `structured_extract` is for specific field lookups — it reads all chunks and fills a Pydantic schema, returning typed, validated fields. A question like "what is the profit rate?" goes to `structured_extract` — I want the exact value. A question like "what are all the conditions if I miss a payment?" goes to `hybrid_search` — I need to read a clause and synthesize it. Mixing both in one tool loses that distinction and the type safety.
 
-**Q: How do you prevent hallucination?**
+**Q: How do you prevent the LLM from hallucinating?**
 
-> Three mechanisms: (1) The system prompt explicitly instructs the LLM to only answer from the provided document and to say "not found" if the answer isn't there. (2) Temperature is set to 0 for deterministic output. (3) For structured extraction, Pydantic schema enforcement means the LLM must return validated typed fields — it cannot invent fields or change their type. Source chunk citations in every answer also let the user verify the answer against the original text.
+> Three mechanisms: (1) The system prompt explicitly instructs the agent to only answer from the provided document text and to say "not found" if the answer isn't there. (2) Temperature is 0 — deterministic output, no randomness that could generate invented values. (3) Pydantic schema enforcement — for structured extraction, the LLM must return validated typed fields and cannot invent fields or change their type. Every answer also shows the source chunk it came from, so users can verify against the original document.
 
-**Q: How would you scale this to production at AMAN?**
+**Q: How would you scale this for Aman in production?**
 
-> Replace ChromaDB with Snowflake Cortex Search or Pinecone for enterprise-scale retrieval across millions of policies. Replace Ollama with a cloud LLM endpoint (OpenAI GPT-4o or Anthropic Claude) — the LangChain abstraction makes this a one-line change. Add LangSmith for full observability of every agent reasoning step. Wrap with JWT authentication for multi-user document ownership. Add a Neo4j knowledge graph to link policies → claims → customers for multi-hop reasoning ("show me all customers whose policy covers X but who have never filed a claim"). Add streaming responses via Server-Sent Events for real-time token output.
+> Replace ChromaDB with Snowflake Cortex Search or Pinecone for millions of contracts across all branches. Replace Ollama with GPT-4o or Anthropic Claude — one line change in agent.py. Add LangSmith for full observability: trace every agent reasoning step, measure latency per tool, catch failures. Add JWT authentication so each branch agent only sees their contracts. Add a Neo4j knowledge graph to link contracts → customers → payment history for multi-hop queries like "show me all customers with active contracts who have missed payments in the last 3 months". Add streaming via SSE instead of polling. All of this is a matter of swapping components — the core architecture (parse → chunk → embed → agent → hybrid search + structured extract) scales unchanged.
 
-**Q: What is Reciprocal Rank Fusion?**
+**Q: Why use LangGraph instead of LangChain's older AgentExecutor?**
 
-> RRF is a rank fusion algorithm that combines multiple ranked lists into one without needing to normalize scores. For each document in each list, its RRF contribution is 1 / (rank + k) where k=60 is a constant that prevents top ranks from having too much weight. You sum these contributions across all lists. A document that appears at rank 1 in BM25 and rank 3 in vector search will score higher than one that appears at rank 1 in only one list. The constant k=60 was empirically found to work well across many retrieval benchmarks.
+> LangGraph is the modern standard for building stateful agent loops. It models the agent as a compiled graph — nodes for reasoning and acting, edges for conditions — giving you fine-grained control over the loop, first-class streaming support, built-in checkpointing, and cleaner message handling. `create_react_agent` from `langgraph.prebuilt` sets this up with sensible defaults. AgentExecutor was the older approach; it's being deprecated in favor of LangGraph because the graph model is more transparent, more extensible, and easier to debug.
 
-**Q: Why did you use LangGraph's create_react_agent instead of LangChain's older AgentExecutor?**
+**Q: Why did you choose ChromaDB over Pinecone or Weaviate?**
 
-> LangGraph is the modern replacement for AgentExecutor. It models the agent as a stateful graph (nodes = think/act, edges = conditions), which gives you fine-grained control over the reasoning loop, first-class support for streaming, built-in checkpointing, and cleaner tool message handling. The `create_react_agent` function from `langgraph.prebuilt` sets up the ReAct loop as a compiled graph — the same `agent.invoke({"messages": [...]})` interface works, but the internals are much more observable and extensible.
+> For a local demo, ChromaDB is the right choice: zero infrastructure, persists to disk, and the LangChain integration is identical to any cloud vector store. The abstraction is the same — if I swap to Pinecone tomorrow, I change one import and the rest of the code is untouched. ChromaDB proves the architecture without requiring cloud accounts, API keys, or network dependencies. For Aman at production scale, I'd move to Snowflake Cortex Search which they may already have in their data infrastructure, or Pinecone for a managed vector service.
 
 ---
 
 ## What You'd Change in Production
 
-| Current (Demo) | Production |
+| Current (Demo) | Production at Aman Scale |
 |---|---|
-| Ollama (local llama3.1) | OpenAI GPT-4o or Anthropic Claude — swap one line in agent.py |
-| ChromaDB (local disk) | Snowflake Cortex Search or Pinecone — enterprise-scale, multi-tenant |
-| In-memory BM25 (lost on restart) | Elasticsearch or OpenSearch — persistent keyword index |
-| No auth | JWT tokens — user sessions, document ownership |
-| Single document at a time | Multi-document index — compare policy versions, portfolio view |
-| Polling for logs (/logs endpoint) | Server-Sent Events (SSE) — real-time streaming without polling |
-| No observability | LangSmith — trace every agent reasoning step, measure latency |
-| No knowledge graph | Neo4j — link policies → claims → customers for multi-hop queries |
+| Ollama local llama3.1 | OpenAI GPT-4o or Anthropic Claude — one-line swap |
+| ChromaDB local disk | Snowflake Cortex Search — enterprise-scale, multi-tenant |
+| In-memory BM25 | Elasticsearch — persistent, scalable keyword index |
+| No authentication | JWT — branch staff login, contract ownership per user |
+| Single contract at a time | Multi-contract index — full portfolio per customer |
+| Polling `/logs` | SSE (Server-Sent Events) — real-time streaming without polling |
+| No tracing | LangSmith — every agent step traced, latency measured, errors caught |
+| No knowledge graph | Neo4j — contracts → customers → payments → delinquency patterns |
+| Local PDF only | Direct integration with Aman's document management system |
 
 ---
 
 *IntelliDoc — Built with LangGraph · LangChain · FastAPI · React · ChromaDB · Ollama*
+*Domain: Aman Consumer Finance — installment contracts, Murabaha financing, fintech Egypt*

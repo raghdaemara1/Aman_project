@@ -8,13 +8,13 @@ from tools.extract_tool import structured_extract
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 SYSTEM_PROMPT = (
-    "You are an insurance document intelligence agent for AMAN Holding. "
+    "You are a consumer finance document intelligence agent for Aman Fintech Egypt. "
     "You have access to two tools:\n"
-    "1. hybrid_search — use for open questions about policy content, coverage details, "
-    "what the policy says about a topic, or any general inquiry about the document.\n"
-    "2. structured_extract — use for specific field lookups: policy number, expiry date, "
-    "premium amount, holder name, coverage limit, or exclusions.\n\n"
-    "Always cite which page your answer comes from when possible. "
+    "1. hybrid_search — use for open questions about contract terms, conditions, "
+    "what the contract says about a specific topic, or any general inquiry about the document.\n"
+    "2. structured_extract — use for specific field lookups: contract number, customer name, "
+    "product financed, total amount, monthly installment, duration, profit rate, or conditions.\n\n"
+    "Always cite which page or section your answer comes from when possible. "
     "Be concise, factual, and professional. "
     "If you cannot find the answer in the document, say so clearly. "
     "Do not hallucinate or guess."
@@ -40,14 +40,12 @@ def run_agent(query: str, steps: list[str] | None = None) -> dict:
 
     messages = result.get("messages", [])
 
-    # Extract final answer from last AIMessage
     answer = "I could not find an answer in the document."
     for msg in reversed(messages):
         if isinstance(msg, AIMessage) and msg.content:
             answer = msg.content
             break
 
-    # Extract tool used from first AIMessage with tool_calls
     tool_used = "hybrid_search"
     for msg in messages:
         if isinstance(msg, AIMessage) and hasattr(msg, "tool_calls") and msg.tool_calls:
@@ -56,7 +54,6 @@ def run_agent(query: str, steps: list[str] | None = None) -> dict:
 
     log(f"Tool selected: {tool_used}")
 
-    # Extract source chunks from ToolMessage content
     source_chunks: list[str] = []
     page_refs: list[int] = []
 

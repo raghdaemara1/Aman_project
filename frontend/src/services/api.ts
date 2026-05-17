@@ -20,19 +20,19 @@ export interface AskResponse {
   steps: string[]
 }
 
-export interface PolicyData {
-  policy_number: string
-  policy_holder: string
-  coverage_type: string
-  start_date: string
-  end_date: string
-  premium_amount: string
-  coverage_limit: string
-  key_exclusions: string[]
+export interface ContractData {
+  contract_number: string
+  customer_name: string
+  product_financed: string
+  total_amount: string
+  monthly_installment: string
+  duration_months: string
+  profit_rate: string
+  key_conditions: string[]
 }
 
 export interface ExtractResponse {
-  data: PolicyData
+  data: ContractData
   steps: string[]
 }
 

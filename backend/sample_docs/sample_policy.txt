@@ -1,151 +1,147 @@
-AMAN HOLDING — INSURANCE POLICY DOCUMENT
+AMAN CONSUMER FINANCE
+عقد تمويل بالتقسيط / INSTALLMENT FINANCE CONTRACT
 
 ================================================================================
-INSURANCE POLICY CERTIFICATE
+CONTRACT DETAILS
 ================================================================================
 
-Policy Number: AMAN-2025-INS-004892
-Policy Holder: Ahmed Mohamed Hassan
-National ID: 29801012345678
-Date of Birth: January 1, 1998
+Contract Number: AMAN-FIN-2025-CF-047832
+Contract Date: March 1, 2025
+Branch: Aman Store — Maadi, Cairo
 
-Coverage Type: Comprehensive Health Insurance
-Policy Class: Individual Premium Plan
-
-Issue Date: January 1, 2025
-Expiry Date: December 31, 2025
-Policy Duration: 12 months
-
-Premium Amount: EGP 4,800 annually (EGP 400 per month)
-Coverage Limit: EGP 500,000 per policy year
-
-Network Provider: AMAN Health Network
-Emergency Hotline: 19795
-Customer Service: 16799
+Customer Name: Sara Ahmed Mahmoud
+National ID: 30003151234567
+Date of Birth: March 15, 2000
+Mobile: 01012345678
+Address: 14 El-Nasr Street, Maadi, Cairo
 
 ================================================================================
-SECTION 1 — COVERED SERVICES
+FINANCED PRODUCT
 ================================================================================
 
-The following services are covered under this Comprehensive Health Insurance policy:
-
-1. Hospitalization
-   - Inpatient admission at any accredited network hospital
-   - Up to 90 days per policy year
-   - Includes room and board, nursing care, and standard medications
-
-2. Emergency Surgery
-   - All emergency surgical procedures performed at accredited facilities
-   - Pre-authorization required for non-emergency surgeries within 48 hours
-
-3. Outpatient Consultations
-   - Up to 20 specialist consultations per policy year
-   - General practitioner visits: unlimited
-   - Referrals from network GPs required for specialist visits
-
-4. Laboratory Tests and Diagnostics
-   - Blood tests, urine analysis, and standard diagnostic panels
-   - Radiology: X-rays, ultrasound, MRI (with prior authorization for MRI)
-   - Covered at 100% when conducted at network laboratories
-
-5. Prescription Medications
-   - Covered up to EGP 2,000 per policy year
-   - Only medications on the AMAN approved formulary list
-   - Generic substitutions required where available
-
-6. Maternity Coverage
-   - Prenatal care, delivery, and postnatal care
-   - Available after a 12-month waiting period from policy start date
-   - Covers normal and caesarean delivery at network hospitals
-   - Newborn care covered for the first 30 days after birth
+Product Financed: Samsung QLED 65-inch Smart TV (Model: QN65Q80C)
+Vendor / Supplier: Samsung Authorized Retailer — Cairo Festival City
+Cash Price: EGP 28,000
+Down Payment: EGP 3,000
+Total Financed Amount: EGP 25,000
 
 ================================================================================
-SECTION 2 — NETWORK COVERAGE
+REPAYMENT SCHEDULE
 ================================================================================
 
-Geographic Coverage: Arab Republic of Egypt
+Financing Duration: 24 months
+Monthly Installment: EGP 1,458.33 / month
+Total Repayment Amount: EGP 35,000
+Profit Rate: 2.5% per month (flat rate)
+Total Profit Amount: EGP 10,000
+Annual Percentage Rate (APR): 30%
 
-Accredited Hospital Networks:
-- Cairo Region: All hospitals rated 3-star and above by Egyptian Ministry of Health
-- Alexandria: University hospitals and private network partners
-- Giza: All AMAN-accredited facilities listed in the network directory
+First Installment Due: April 1, 2025
+Final Installment Due: March 1, 2027
+Contract Maturity Date: March 1, 2027
 
-For the complete list of accredited hospitals, visit: www.aman-holding.com/network
-or call the 24-hour hotline: 19795
-
-================================================================================
-SECTION 3 — EXCLUSIONS
-================================================================================
-
-The following conditions and services are NOT covered under this policy:
-
-1. Pre-existing Conditions
-   Any medical condition diagnosed, treated, or symptomatic before the policy
-   start date of January 1, 2025, is excluded from coverage for the first
-   24 months of the policy.
-
-2. Cosmetic and Elective Procedures
-   Any procedure performed for aesthetic, cosmetic, or elective reasons that
-   is not medically necessary. This includes but is not limited to: rhinoplasty,
-   liposuction, Botox, hair transplants, and dental veneers.
-
-3. Dental and Optical Care
-   Routine dental treatments, fillings, extractions, orthodontics, and all
-   optical services including prescription glasses and contact lenses.
-   Emergency dental treatment due to accident is covered.
-
-4. Mental Health Treatment
-   Psychiatric consultations, psychological therapy, inpatient mental health
-   facilities, and prescription medications for mental health conditions.
-
-5. Injuries Resulting from Extreme Sports
-   Any injury sustained while participating in extreme or hazardous sports
-   including: skydiving, bungee jumping, rock climbing, motor racing,
-   paragliding, and contact martial arts competitions.
-
-6. Treatment Outside Egypt
-   Medical treatment received outside the Arab Republic of Egypt is not covered
-   except in genuine life-threatening emergencies. Reimbursement for emergency
-   overseas treatment requires submission of all original receipts within 30 days
-   of return to Egypt.
+Payment Method: Direct debit from customer bank account (QNB Alahli)
+Account Number: xxxx-xxxx-xxxx-4821
 
 ================================================================================
-SECTION 4 — CLAIMS PROCEDURE
+SECTION 1 — AMAN FINANCE TERMS AND CONDITIONS
 ================================================================================
 
-For cashless treatment at network hospitals:
-1. Present your AMAN insurance card and national ID
-2. Hospital contacts AMAN for pre-authorization (within 2 hours)
-3. Treatment proceeds upon authorization
+1.1 Nature of Agreement
+This is a Sharia-compliant Murabaha installment finance agreement regulated by
+the Egyptian Financial Regulatory Authority (FRA) under Law No. 176 of 2018.
+Aman Consumer Finance purchases the product and resells it to the customer at
+the agreed total price payable in monthly installments.
 
-For reimbursement claims:
-1. Submit claim form within 45 days of treatment
-2. Include original invoices, prescriptions, and medical reports
-3. Payment processed within 15 business days of complete documentation
+1.2 Ownership Transfer
+Legal ownership of the financed product transfers to the customer upon full
+repayment of all installments. Until final payment is made, Aman Consumer
+Finance retains a security interest in the product.
 
-================================================================================
-SECTION 5 — POLICY CONDITIONS
-================================================================================
-
-Waiting Periods:
-- General coverage: Active from policy start date
-- Maternity coverage: 12 months from policy start date
-- Cancer treatment: 90 days from policy start date
-- Organ transplant: 180 days from policy start date
-
-Annual Deductible: EGP 500 per policy year (waived for emergencies)
-Co-payment: 10% of covered expenses after deductible (waived for network hospitals)
-
-Policy Renewal: This policy automatically renews annually unless cancelled
-in writing 30 days prior to expiry date.
+1.3 Customer Obligations
+The customer is obligated to:
+- Make monthly payments on or before the due date each month
+- Maintain the financed product in good condition
+- Not sell or transfer the product before full repayment without written consent
+- Notify Aman immediately of any change in address or contact details
 
 ================================================================================
+SECTION 2 — LATE PAYMENT AND PENALTIES
+================================================================================
 
-This policy is governed by the laws of the Arab Republic of Egypt and
-regulated by the Egyptian Financial Regulatory Authority (FRA).
+2.1 Late Payment Fee
+A late payment administrative fee of EGP 75 per month will be charged for
+any installment not paid within 7 calendar days of the due date.
 
-Issued by: AMAN Holding Insurance Company
-License Number: FRA-INS-2019-0042
-Authorized Signatory: [Digital Signature Applied]
+2.2 Consecutive Missed Payments
+If the customer misses 3 or more consecutive installments, Aman Consumer
+Finance reserves the right to:
+- Declare the entire outstanding balance immediately due
+- Initiate legal proceedings for debt recovery
+- Report the default to the I-Score credit bureau
+
+2.3 Bounced Direct Debit
+A fee of EGP 150 will be charged for each failed direct debit attempt
+due to insufficient funds.
+
+================================================================================
+SECTION 3 — EARLY SETTLEMENT
+================================================================================
+
+3.1 Full Early Settlement
+The customer may settle the remaining balance in full at any time.
+An early settlement fee of 1% of the outstanding principal applies
+if settlement occurs within the first 12 months of the contract.
+No early settlement fee applies after 12 months.
+
+3.2 Partial Prepayment
+Partial prepayments are accepted in multiples of EGP 1,000.
+Partial prepayments reduce the remaining number of installments;
+the monthly installment amount remains unchanged.
+
+================================================================================
+SECTION 4 — INSURANCE AND TAKAFUL
+================================================================================
+
+Product Takaful (Islamic Insurance) is included with this contract.
+Coverage: accidental damage, fire, and theft of the financed product.
+Takaful provider: Aman Takaful Company
+Annual Takaful contribution: EGP 350 (included in the total financed amount)
+
+Life Takaful: Optional credit life protection is available at EGP 200/year.
+Status on this contract: NOT enrolled
+
+================================================================================
+SECTION 5 — CUSTOMER RIGHTS & DISPUTE RESOLUTION
+================================================================================
+
+5.1 Cooling-off Period
+The customer has the right to cancel this contract within 5 business days
+of signing with no penalty, provided the product has not been used.
+
+5.2 Complaints
+For complaints, contact Aman Customer Service:
+- Hotline: 19795
+- Email: complaints@aman-holding.com
+- FRA Consumer Protection Unit: www.fra.gov.eg
+
+5.3 Governing Law
+This contract is governed by the laws of the Arab Republic of Egypt.
+Disputes shall be settled by the Cairo Economic Court.
+
+================================================================================
+SECTION 6 — DECLARATIONS
+================================================================================
+
+The customer confirms they have read, understood, and agreed to all terms.
+The customer confirms all provided information is accurate.
+
+Customer Signature: [Signed — Sara Ahmed Mahmoud]
+Aman Representative: [Signed — Mohamed Khalil, Branch Manager]
+Contract Issue Date: March 1, 2025
+
+Issued by: Aman Consumer Finance S.A.E.
+FRA License Number: FRA-CF-2017-0031
+Head Office: 10 Talaat Harb Street, Downtown Cairo, Egypt
 
 ================================================================================
