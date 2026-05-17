@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"D:\\\\OneDrive - Obeikan Investment Group\\\\desktop\\\\Aman\\\\my-project\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks 2>&1)",
+      "Bash(python -m uvicorn main:app --reload --port 8000)",
+      "Bash(Start-Sleep -Seconds 5)",
+      "Bash(Get-Content \"C:\\\\Users\\\\RAGHDA~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--OneDrive---Obeikan-Investment-Group-desktop-Aman-my-project\\\\1a49995f-9ab7-4d7a-bf61-99a2eaf8f3e0\\\\tasks\\\\bgq6wimx8.output\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

@@ -6,7 +6,7 @@ langchain-ollama==0.1.0
 langchain-core==0.1.52
 chromadb==0.4.24
 rank-bm25==0.2.2
-unstructured[pdf]==0.13.0
+unstructured[pdf]
 pydantic==2.7.0
 python-dotenv==1.0.1
 python-multipart==0.0.9
