@@ -109,13 +109,13 @@ Frontend display rules:
 | Frontend styling | Tailwind CSS | 3.x | Clean, minimal UI |
 | Backend API | FastAPI | 0.110.x | Auto-generates OpenAPI docs |
 | Backend server | Uvicorn | 0.29.x | ASGI server |
-| AI orchestration | LangChain + langchain-openai | 0.1.x | Agent + chains |
+| AI orchestration | LangChain + langchain-ollama | 0.1.x | Agent + chains |
 | Vector store | ChromaDB | 0.4.x | Local persistence |
-| LLM | gpt-4o-mini | — | Via OpenAI API |
-| Embeddings | text-embedding-3-small | — | Via OpenAI API |
+| LLM | llama3.1:latest | — | Local via Ollama |
+| Embeddings | nomic-embed-text:latest | — | Local via Ollama |
 | PDF parsing | unstructured[pdf] | 0.13.x | With chunking via LangChain |
 | Schema validation | Pydantic | 2.7.x | Structured extraction |
-| Environment | python-dotenv | 1.0.x | `.env` file for API key |
+| Environment | python-dotenv | 1.0.x | `.env` file for configuration |
 
 **No substitutions** to the above stack without updating this constitution and all dependent specs.
 
