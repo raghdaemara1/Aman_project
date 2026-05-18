@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
@@ -37,6 +38,42 @@ class PolicyData(BaseModel):
     premium_amount: str = Field(description="Premium amount as stated in the document")
     coverage_limit: str = Field(description="Maximum coverage or benefit amount as stated")
     key_exclusions: list[str] = Field(description="List of things NOT covered or key conditions and limitations")
+
+
+def _scan_label(text: str, labels: list[str]) -> str | None:
+    """Scan text for 'Label: value' pattern and return the value if found."""
+    for label in labels:
+        match = re.search(rf"{re.escape(label)}\s*:?\s*([^\n]+)", text, re.IGNORECASE)
+        if match:
+            value = match.group(1).strip()
+            if value:
+                return value
+    return None
+
+
+def _regex_override(result: "PolicyData", context: str) -> "PolicyData":
+    """Override LLM-extracted fields with regex results where labels are clearly present."""
+    overrides: dict = {}
+
+    v = _scan_label(context, ["Policy Number", "Policy No", "Policy #"])
+    if v:
+        overrides["policy_number"] = v
+
+    v = _scan_label(context, ["Policyholder", "Policy Holder", "Named Insured", "Insured"])
+    if v:
+        overrides["policy_holder"] = v
+
+    v = _scan_label(context, ["Policy Effective Date", "Effective Date", "Issue Date"])
+    if v:
+        overrides["start_date"] = v
+
+    v = _scan_label(context, ["Policy Expiration Date", "Expiration Date", "Expiry Date"])
+    if v:
+        overrides["end_date"] = v
+
+    if overrides:
+        return result.model_copy(update=overrides)
+    return result
 
 
 def _build_full_context(all_chunks: list[Document]) -> str:
@@ -99,6 +136,7 @@ def extract_policy_data(
             )),
         ])
         result = (prompt | structured_llm).invoke({"context": context})
+        result = _regex_override(result, context)
         populated = len([
             v for v in result.model_dump().values()
             if v and v not in ("Not specified", [])
@@ -140,6 +178,7 @@ def extract_policy_data(
             coverage_limit=raw.get("coverage_limit", "Not specified"),
             key_exclusions=exclusions,
         )
+        result = _regex_override(result, context)
         populated = len([
             v for v in result.model_dump().values()
             if v and v not in ("Not specified", [])
