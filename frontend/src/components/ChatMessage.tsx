@@ -1,3 +1,5 @@
+import PipelineLog from './PipelineLog'
+
 interface Props {
   role: 'human' | 'assistant'
   content: string
@@ -29,46 +31,40 @@ export default function ChatMessage({ role, content, agentUsed, steps, sourceChu
   }
 
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[85%] space-y-1.5">
-        {agentUsed && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${AGENT_COLOR[agentUsed] ?? 'bg-gray-100 text-gray-600'}`}>
-            {AGENT_LABEL[agentUsed] ?? agentUsed}
-          </span>
-        )}
-        <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-gray-800 shadow-sm whitespace-pre-wrap">
-          {content}
+    <div className="space-y-2">
+      <div className="flex justify-start">
+        <div className="max-w-[85%] space-y-1.5">
+          {agentUsed && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${AGENT_COLOR[agentUsed] ?? 'bg-gray-100 text-gray-600'}`}>
+              {AGENT_LABEL[agentUsed] ?? agentUsed}
+            </span>
+          )}
+          <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-gray-800 shadow-sm whitespace-pre-wrap">
+            {content}
+          </div>
+          {sourceChunks && sourceChunks.length > 0 && (
+            <details className="text-xs text-gray-400">
+              <summary className="cursor-pointer hover:text-gray-600 select-none px-1">
+                {sourceChunks.length} source chunk(s)
+              </summary>
+              <div className="mt-1 space-y-1">
+                {sourceChunks.map((chunk, i) => (
+                  <div key={i} className="bg-gray-50 border border-gray-100 rounded p-2 text-gray-600">
+                    {pageRefs?.[i] && (
+                      <span className="text-xs font-medium text-gray-400 mr-1">p.{pageRefs[i]}</span>
+                    )}
+                    {chunk}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
-        {steps && steps.length > 0 && (
-          <details className="text-xs text-gray-400">
-            <summary className="cursor-pointer hover:text-gray-600 select-none px-1">
-              {steps.length} pipeline steps
-            </summary>
-            <div className="mt-1 space-y-0.5 pl-2 border-l-2 border-gray-100">
-              {steps.map((s, i) => (
-                <p key={i} className="text-gray-500">{s}</p>
-              ))}
-            </div>
-          </details>
-        )}
-        {sourceChunks && sourceChunks.length > 0 && (
-          <details className="text-xs text-gray-400">
-            <summary className="cursor-pointer hover:text-gray-600 select-none px-1">
-              {sourceChunks.length} source chunk(s)
-            </summary>
-            <div className="mt-1 space-y-1">
-              {sourceChunks.map((chunk, i) => (
-                <div key={i} className="bg-gray-50 border border-gray-100 rounded p-2 text-gray-600">
-                  {pageRefs?.[i] && (
-                    <span className="text-xs font-medium text-gray-400 mr-1">p.{pageRefs[i]}</span>
-                  )}
-                  {chunk}
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
       </div>
+
+      {steps && steps.length > 0 && (
+        <PipelineLog steps={steps} title="Agent Pipeline" />
+      )}
     </div>
   )
 }

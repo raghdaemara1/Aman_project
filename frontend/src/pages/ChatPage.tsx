@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ChatMessage from '../components/ChatMessage'
-import { sendChat, clearChatSession } from '../services/api'
+import PipelineLog from '../components/PipelineLog'
+import { sendChat, clearChatSession, getLogs } from '../services/api'
 import type { ChatResponse } from '../services/api'
 
 interface Message {
@@ -22,11 +23,24 @@ export default function ChatPage({ documentLoaded }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [liveSteps, setLiveSteps] = useState<string[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, liveSteps])
+
+  // Poll /logs every 1.5s while agent is running
+  useEffect(() => {
+    if (!loading) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await getLogs()
+        if (res.steps.length > 0) setLiveSteps(res.steps)
+      } catch { /* ignore */ }
+    }, 1500)
+    return () => clearInterval(interval)
+  }, [loading])
 
   async function handleSend() {
     const query = input.trim()
@@ -34,6 +48,7 @@ export default function ChatPage({ documentLoaded }: Props) {
 
     setInput('')
     setError(null)
+    setLiveSteps([])
     setMessages(prev => [...prev, { role: 'human', content: query }])
     setLoading(true)
 
@@ -59,6 +74,7 @@ export default function ChatPage({ documentLoaded }: Props) {
       setMessages(prev => prev.slice(0, -1))
     } finally {
       setLoading(false)
+      setLiveSteps([])
     }
   }
 
@@ -140,14 +156,19 @@ export default function ChatPage({ documentLoaded }: Props) {
         ))}
 
         {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-              <div className="flex gap-1 items-center">
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+          <div className="space-y-2">
+            <div className="flex justify-start">
+              <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="flex gap-1 items-center">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                </div>
               </div>
             </div>
+            {liveSteps.length > 0 && (
+              <PipelineLog steps={liveSteps} title="Agent Pipeline (Live)" />
+            )}
           </div>
         )}
 

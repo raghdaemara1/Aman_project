@@ -27,6 +27,14 @@ const STEP_ICONS: Record<string, string> = {
   'Pydantic parser': '✅',
   'Extraction complete': '✅',
   'Fallback': '⚠️',
+  'Session': '🗂️',
+  'Supervisor Agent': '🧭',
+  'Supervisor →': '➡️',
+  'Supervisor correction': '🔁',
+  'Supervisor fallback': '⚠️',
+  'Retrieval Agent': '🔍',
+  'Extraction Agent': '🏷️',
+  'Answer generated': '✍️',
 }
 
 function getIcon(step: string): string {
