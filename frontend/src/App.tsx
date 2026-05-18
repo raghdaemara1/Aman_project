@@ -3,10 +3,11 @@ import FileUpload from './components/FileUpload'
 import PipelineLog from './components/PipelineLog'
 import AskPage from './pages/AskPage'
 import ExtractPage from './pages/ExtractPage'
-import { getLogs } from './services/api'
+import ChatPage from './pages/ChatPage'
+import { getLogs, clearStore } from './services/api'
 import type { UploadResponse } from './services/api'
 
-type Tab = 'ask' | 'extract'
+type Tab = 'ask' | 'extract' | 'chat'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('ask')
@@ -15,6 +16,7 @@ export default function App() {
   const [showUploadLog, setShowUploadLog] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [liveUploadSteps, setLiveUploadSteps] = useState<string[]>([])
+  const [isClearing, setIsClearing] = useState(false)
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>
@@ -56,6 +58,21 @@ export default function App() {
     setShowUploadLog(false)
   }
 
+  async function handleClear() {
+    setIsClearing(true)
+    try {
+      await clearStore()
+      setUploadInfo(null)
+      setUploadError(null)
+      setShowUploadLog(false)
+      setLiveUploadSteps([])
+    } catch {
+      // ignore
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
   const documentLoaded = uploadInfo !== null
 
   return (
@@ -82,12 +99,21 @@ export default function App() {
               {uploadInfo.metadata.pages > 0 && (
                 <p className="text-xs text-green-700">{uploadInfo.metadata.pages} page{uploadInfo.metadata.pages !== 1 ? 's' : ''}</p>
               )}
-              <button
-                onClick={() => setShowUploadLog(v => !v)}
-                className="text-xs text-green-600 underline mt-1"
-              >
-                {showUploadLog ? 'Hide' : 'Show'} ingestion log
-              </button>
+              <div className="flex items-center gap-3 mt-1">
+                <button
+                  onClick={() => setShowUploadLog(v => !v)}
+                  className="text-xs text-green-600 underline"
+                >
+                  {showUploadLog ? 'Hide' : 'Show'} ingestion log
+                </button>
+                <button
+                  onClick={handleClear}
+                  disabled={isClearing}
+                  className="text-xs text-red-500 underline disabled:opacity-50"
+                >
+                  {isClearing ? 'Clearing…' : 'Clear document'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -113,7 +139,7 @@ export default function App() {
       <main className="flex-1 p-8 max-w-3xl">
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 mb-6">
-          {(['ask', 'extract'] as Tab[]).map(tab => (
+          {(['ask', 'chat', 'extract'] as Tab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -123,7 +149,7 @@ export default function App() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab === 'ask' ? 'Ask a Question' : 'Extract Policy Data'}
+              {tab === 'ask' ? 'Ask a Question' : tab === 'chat' ? 'Chat' : 'Extract Policy Data'}
             </button>
           ))}
         </div>
@@ -142,6 +168,9 @@ export default function App() {
           <>
             <div className={activeTab === 'ask' ? '' : 'hidden'}>
               <AskPage documentLoaded={documentLoaded} />
+            </div>
+            <div className={activeTab === 'chat' ? '' : 'hidden'}>
+              <ChatPage documentLoaded={documentLoaded} />
             </div>
             <div className={activeTab === 'extract' ? '' : 'hidden'}>
               <ExtractPage documentLoaded={documentLoaded} />

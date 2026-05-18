@@ -1,4 +1,5 @@
 import os
+import uuid
 import hashlib
 import tempfile
 import datetime
@@ -10,6 +11,8 @@ from core.parser import parse_and_chunk
 from core.vectorstore import ingest_documents, has_documents, clear_store, get_retriever, get_chunks
 from core.agent import run_agent
 from core.extractor import extract_policy_data
+from core.orchestrator import run_orchestrator
+from core.memory import get_history, clear_session
 
 router = APIRouter()
 
@@ -194,6 +197,58 @@ async def extract_data():
     except Exception as e:
         print(f">>> [API] Extraction error: {e}")
         raise HTTPException(status_code=500, detail=f"Extraction error: {str(e)}")
+
+
+class ChatRequest(BaseModel):
+    query: str
+    session_id: str | None = None
+
+
+@router.post("/chat", tags=["chat"], summary="Conversational multi-agent endpoint")
+async def chat(request: ChatRequest):
+    """
+    Conversational AI pipeline with multi-agent orchestration and session memory.
+
+    Each call goes through three stages:
+    1. **Supervisor Agent** — classifies the question and routes to the right specialist
+    2. **Retrieval Agent** (hybrid_search) or **Extraction Agent** (structured_extract)
+    3. Answer is saved to session memory — follow-up questions have full context
+
+    Pass `session_id` from the previous response to continue a conversation.
+    Omit it (or send null) to start a new session.
+    """
+    global current_pipeline_steps
+    current_pipeline_steps.clear()
+
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    if not has_documents():
+        raise HTTPException(status_code=409, detail="No document indexed. Please upload a PDF first.")
+
+    session_id = request.session_id or str(uuid.uuid4())
+
+    try:
+        result = await _run(
+            lambda: run_orchestrator(request.query, session_id, steps=current_pipeline_steps)
+        )
+        return result
+    except Exception as e:
+        print(f">>> [API] Chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+
+
+@router.get("/chat/history/{session_id}", tags=["chat"], summary="Get conversation history")
+async def get_chat_history(session_id: str):
+    """Return full conversation history for a session."""
+    return {"session_id": session_id, "history": get_history(session_id)}
+
+
+@router.delete("/chat/sessions/{session_id}", tags=["chat"], summary="Clear a conversation session")
+async def clear_chat_session(session_id: str):
+    """Delete all messages for a session and start fresh."""
+    clear_session(session_id)
+    return {"cleared": True, "session_id": session_id}
 
 
 @router.delete("/store", tags=["documents"], summary="Clear the vector store")

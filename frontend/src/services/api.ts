@@ -55,6 +55,30 @@ export async function extractPolicy(): Promise<ExtractResponse> {
   return data
 }
 
+export interface ChatResponse {
+  answer: string
+  agent_used: 'retrieval_agent' | 'extraction_agent'
+  source_chunks: string[]
+  page_refs: number[]
+  steps: string[]
+  session_id: string
+}
+
+export interface HistoryEntry {
+  role: 'human' | 'assistant'
+  content: string
+  agent_used?: string
+}
+
+export async function sendChat(query: string, session_id: string | null): Promise<ChatResponse> {
+  const { data } = await api.post<ChatResponse>('/chat', { query, session_id })
+  return data
+}
+
+export async function clearChatSession(session_id: string): Promise<void> {
+  await api.delete(`/chat/sessions/${session_id}`)
+}
+
 export async function clearStore(): Promise<void> {
   await api.delete('/store')
 }
