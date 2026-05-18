@@ -68,13 +68,13 @@ def structured_extract(field_name: str) -> str:
 
     for key, value in field_map.items():
         if key in normalized or normalized in key:
-            return value or "Not specified"
+            return f"Page 1: {value or 'Not specified'}"
 
     exclusions_str = (
         ", ".join(policy.key_exclusions) if policy.key_exclusions else "Not specified"
     )
     return (
-        f"Policy Number: {policy.policy_number}\n"
+        f"Page 1: Policy Number: {policy.policy_number}\n"
         f"Policy Holder: {policy.policy_holder}\n"
         f"Coverage Type: {policy.coverage_type}\n"
         f"Effective Date: {policy.start_date}\n"
