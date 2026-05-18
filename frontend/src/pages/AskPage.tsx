@@ -60,13 +60,17 @@ export default function AskPage({ documentLoaded }: Props) {
           {error}
         </div>
       )}
-      {liveSteps.length > 0 && (
-        <PipelineLog
-          steps={liveSteps}
-          title={loading ? 'Agent Pipeline (Live)' : 'Agent Pipeline'}
-        />
-      )}
       {answer && <AnswerCard response={answer} />}
+      {liveSteps.length > 0 && (
+        <details open={loading}>
+          <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 select-none py-1">
+            {loading ? 'Agent Pipeline (Live)' : `Agent Pipeline — ${liveSteps.length} steps`}
+          </summary>
+          <div className="mt-2">
+            <PipelineLog steps={liveSteps} />
+          </div>
+        </details>
+      )}
     </div>
   )
 }
