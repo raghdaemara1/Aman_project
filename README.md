@@ -1,18 +1,18 @@
-# IntelliDoc — Consumer Finance Document Intelligence Agent
+# IntelliDoc — Insurance Document Intelligence Agent
 
-> **A fully local, privacy-first Agentic RAG system built for Aman Fintech Egypt — reads consumer finance contract PDFs, answers questions about them, and extracts structured data, all without sending a single byte to the cloud.**
+> **A fully local, privacy-first Agentic RAG system — reads insurance policy PDFs, answers questions about them, and extracts structured data, all without sending a single byte to the cloud.**
 
 ---
 
 ## What Does This App Do?
 
-Aman issues thousands of consumer finance installment contracts every day — for electronics, furniture, cars, tourism packages, and more. IntelliDoc lets you upload any such contract PDF and then:
+IntelliDoc lets you upload any insurance policy PDF and then:
 
 | Feature | What You Can Do |
 |---|---|
 | **Smart Upload** | Upload a PDF — the AI automatically parses every page, chunks it, embeds it, and indexes it |
-| **Ask Questions** | Ask anything in plain English: *"What are the late payment penalties?"* or *"Can I settle early?"* |
-| **Extract Contract Data** | Click one button to extract all 8 key contract fields into a structured table, validated by a Pydantic schema |
+| **Ask Questions** | Ask anything in plain English: *"What is covered under this policy?"* or *"What are the exclusions?"* |
+| **Extract Policy Data** | Click one button to extract all 8 key policy fields into a structured table, validated by a Pydantic schema |
 | **Transparent AI** | See every reasoning step the agent took, which tool it selected, and which page the answer came from |
 | **Document Memory** | Upload the same file again — the system recognizes it via MD5 hash and skips re-processing |
 | **Live Pipeline Logs** | Watch each step of the ingestion or inference pipeline appear in real-time |
@@ -94,74 +94,86 @@ Contract PDF Uploaded
 
 ---
 
-### Pipeline 2 — Agentic Q&A
+### Pipeline 2 — Agentic Q&A  (`/ask` endpoint — uses the agent)
 
-The AI reasons about HOW to answer — not just what to output:
+The AI reasons about HOW to answer — not just what to output.
+The agent runs a Reason → Act → Observe loop until it has an answer:
 
 ```
-User Question
+User Question  (e.g. "What is the policy number?")
       │
       ▼
 LangGraph ReAct Agent (llama3.1) — Reason + Act loop
       │
-      ├── Specific field? (contract number, amount, rate, duration...)
-      │         └──► Tool 2: structured_extract
-      │                  Reads all chunks → fills Pydantic schema
-      │                  Returns the specific field value
+      ▼
+  THINK: "Is this a specific field lookup or a general question?"
       │
-      └── General question? (terms, conditions, process, penalties...)
-                └──► Tool 1: hybrid_search
-                         BM25 keyword search
-                         + ChromaDB vector search
-                         + RRF merge
-                         → top-4 chunks → LLM generates answer
+      ├── Specific field? (policy number, holder, dates, premium, limit...)
+      │         │
+      │         ▼
+      │      Tool: structured_extract
+      │         Sends all chunks to llama3.1 with a strict Pydantic schema
+      │         LLM must return JSON — Pydantic validates every field and type
+      │         Returns the exact field value → "US151741"
+      │
+      └── General question? (what does it say about X, coverage terms...)
+                │
+                ▼
+             Tool: hybrid_search
+                Runs two searches in parallel:
+                  ① BM25 keyword search (exact word match, in memory)
+                  ② ChromaDB vector search (semantic meaning, from disk)
+                Merges results with RRF (rank-based fusion, no score scaling)
+                Returns top-4 chunks as text → LLM reads and writes the answer
 ```
 
-**Why two tools?** Semantic search finds *concepts*. Structured extraction finds *precise typed fields*. Making the agent choose between them is what makes this system "agentic".
+**Why two tools?** Semantic search finds *concepts*. Structured extraction finds *precise typed fields*. Making the agent choose is what makes this system "agentic" — it reasons about retrieval strategy, not just content.
 
 **Hybrid Search = BM25 + ChromaDB + RRF**
-- BM25: exact keyword matching — great for contract numbers, amounts, dates
-- ChromaDB: cosine similarity of 768-dim embeddings — great for concepts like "early settlement"
-- RRF: rank-fusion that is scale-invariant — merges both lists using position, not raw scores
+- BM25: exact keyword matching — great for policy numbers, dates, exact terms
+- ChromaDB: cosine similarity of 768-dim embeddings — great for concepts like "what is excluded"
+- RRF: rank-fusion that is scale-invariant — merges both ranked lists using position, not raw scores
 
 ---
 
-### Pipeline 3 — Structured Data Extraction
+### Pipeline 3 — Structured Data Extraction  (`/extract` endpoint — NO agent)
+
+This is a **direct extraction** — it bypasses the agent entirely.
+It always runs the same path: all chunks → Pydantic schema → structured table.
 
 ```
-"Extract Contract Data" Clicked
+"Extract Policy Data" Button Clicked
       │
       ▼
-1. Load all indexed chunks, sort by page number (page 1 first)
+1. Load ALL indexed chunks, sort by page number (page 1 first)
       │
       ▼
-2. Build full context string, trim to 6,000 chars
+2. Build full context string, trim to 6,000 characters
       │
       ▼
-3. llm.with_structured_output(ContractData)
-   LangChain sends ContractData schema as a tool definition
-   llama3.1 must return JSON matching the schema exactly
-   Pydantic validates every field and type
+3. llm.with_structured_output(PolicyData)
+   LangChain sends PolicyData schema to llama3.1 as a tool definition
+   llama3.1 MUST return JSON — Pydantic validates every field and type
       │
-      ├── SUCCESS → return ContractData
-      └── FAILURE → re-prompt with format="json" (Ollama JSON mode)
-                    → parse raw JSON → build ContractData manually
+      ├── SUCCESS → return PolicyData object
+      └── FAILURE → fallback: re-prompt with format="json" (Ollama JSON mode)
+                    → parse raw JSON manually → build PolicyData
       │
       ▼
-   Structured table — 8/8 fields from YOUR uploaded contract
+   Structured table — 8 fields filled from YOUR uploaded document
 ```
 
-**Extracted fields:**
+**Extracted fields (insurance schema):**
 | Field | Example |
 |---|---|
-| Contract Number | AMAN-FIN-2025-CF-047832 |
-| Customer Name | Sara Ahmed Mahmoud |
-| Product Financed | Samsung QLED 65-inch Smart TV |
-| Total Financed Amount | EGP 25,000 |
-| Monthly Installment | EGP 1,458.33 / month |
-| Duration | 24 months |
-| Profit Rate | 2.5% per month (flat rate) |
-| Key Conditions & Penalties | Late fee EGP 75/month, Early settlement 1%... |
+| Policy Number | US151741 |
+| Policy Holder | School District of Hillsborough County |
+| Coverage Type | Blanket Benefits Accident Only |
+| Effective Date | August 1, 2013 |
+| Expiration Date | August 1, 2014 |
+| Premium Amount | Not specified |
+| Coverage Limit | Not specified |
+| Key Exclusions & Conditions | Benefits not payable for loss due to sickness... |
 
 ---
 
@@ -237,7 +249,7 @@ App running at `http://localhost:5173`
 2. Upload any consumer finance contract PDF using the sidebar
 3. Watch the **Ingestion Pipeline (Live)** logs appear in real-time
 4. Ask questions in the **Ask a Question** tab
-5. Click **Extract Contract Data** in the **Extract** tab
+5. Click **Extract Policy Data** in the **Extract** tab
 
 ---
 

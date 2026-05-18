@@ -64,7 +64,7 @@ export default function App() {
       <aside className="w-72 bg-white border-r border-gray-200 flex flex-col p-5 gap-5 overflow-y-auto">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">IntelliDoc</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Aman Finance Contract Agent</p>
+          <p className="text-xs text-gray-500 mt-0.5">Insurance Document Agent</p>
         </div>
 
         <div className="space-y-3">
@@ -123,7 +123,7 @@ export default function App() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab === 'ask' ? 'Ask a Question' : 'Extract Contract Data'}
+              {tab === 'ask' ? 'Ask a Question' : 'Extract Policy Data'}
             </button>
           ))}
         </div>
@@ -133,7 +133,7 @@ export default function App() {
             <div className="text-5xl mb-4">📄</div>
             <h2 className="text-lg font-semibold text-gray-700 mb-2">No document loaded</h2>
             <p className="text-sm text-gray-400 max-w-xs">
-              Upload a consumer finance contract PDF using the sidebar to get started.
+              Upload an insurance policy PDF using the sidebar to get started.
               The agent will parse, chunk, embed, and index it automatically.
             </p>
           </div>

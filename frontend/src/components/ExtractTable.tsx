@@ -1,18 +1,18 @@
-import type { ContractData } from '../services/api'
+import type { PolicyData } from '../services/api'
 
 interface Props {
-  data: ContractData
+  data: PolicyData
 }
 
-const FIELD_LABELS: [keyof ContractData, string][] = [
-  ['contract_number', 'Contract Number'],
-  ['customer_name', 'Customer Name'],
-  ['product_financed', 'Product Financed'],
-  ['total_amount', 'Total Financed Amount'],
-  ['monthly_installment', 'Monthly Installment'],
-  ['duration_months', 'Duration'],
-  ['profit_rate', 'Profit Rate'],
-  ['key_conditions', 'Key Conditions & Penalties'],
+const FIELD_LABELS: [keyof PolicyData, string][] = [
+  ['policy_number', 'Policy Number'],
+  ['policy_holder', 'Policy Holder'],
+  ['coverage_type', 'Coverage Type'],
+  ['start_date', 'Effective Date'],
+  ['end_date', 'Expiration Date'],
+  ['premium_amount', 'Premium Amount'],
+  ['coverage_limit', 'Coverage Limit'],
+  ['key_exclusions', 'Key Exclusions & Conditions'],
 ]
 
 export default function ExtractTable({ data }: Props) {
@@ -30,10 +30,10 @@ export default function ExtractTable({ data }: Props) {
             <tr key={field} className="hover:bg-gray-50">
               <td className="px-4 py-3 text-gray-500 font-medium align-top">{label}</td>
               <td className="px-4 py-3 text-gray-900">
-                {field === 'key_conditions' ? (
-                  Array.isArray(data.key_conditions) && data.key_conditions.length > 0 ? (
+                {field === 'key_exclusions' ? (
+                  Array.isArray(data.key_exclusions) && data.key_exclusions.length > 0 ? (
                     <ul className="list-disc list-inside space-y-1">
-                      {data.key_conditions.map((c, i) => (
+                      {data.key_exclusions.map((c, i) => (
                         <li key={i}>{c}</li>
                       ))}
                     </ul>

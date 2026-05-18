@@ -8,12 +8,12 @@ from tools.extract_tool import structured_extract
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 SYSTEM_PROMPT = (
-    "You are a consumer finance document intelligence agent for Aman Fintech Egypt. "
+    "You are an insurance document intelligence agent. "
     "You have access to two tools:\n"
-    "1. hybrid_search — use for open questions about contract terms, conditions, "
-    "what the contract says about a specific topic, or any general inquiry about the document.\n"
-    "2. structured_extract — use for specific field lookups: contract number, customer name, "
-    "product financed, total amount, monthly installment, duration, profit rate, or conditions.\n\n"
+    "1. hybrid_search — use for open questions about policy terms, coverage, "
+    "what the policy says about a specific topic, or any general inquiry about the document.\n"
+    "2. structured_extract — use for specific field lookups: policy number, policyholder name, "
+    "coverage type, effective date, expiration date, premium amount, coverage limit, or exclusions.\n\n"
     "Always cite which page or section your answer comes from when possible. "
     "Be concise, factual, and professional. "
     "If you cannot find the answer in the document, say so clearly. "
@@ -33,7 +33,7 @@ def run_agent(query: str, steps: list[str] | None = None) -> dict:
 
     llm = ChatOllama(model="llama3.1:latest", temperature=0, base_url=OLLAMA_BASE_URL)
     tools = [hybrid_search, structured_extract]
-    agent = create_react_agent(llm, tools, state_modifier=SYSTEM_PROMPT)
+    agent = create_react_agent(llm, tools, prompt=SYSTEM_PROMPT)
 
     log("Agent reasoning — selecting tool...")
     result = agent.invoke({"messages": [HumanMessage(content=query)]})
