@@ -450,7 +450,8 @@ All explainer files are in the `docs/` folder:
 
 | File | What it covers |
 |---|---|
-| [docs/PIPELINES.md](docs/PIPELINES.md) | Visual step-by-step diagrams for all 3 pipelines |
+| [docs/NEW_FEATURES.md](docs/NEW_FEATURES.md) | Conversational AI Pipeline & Multi-Agent Orchestration — what they are, how they work, and why Ask and Chat are different |
+| [docs/PIPELINES.md](docs/PIPELINES.md) | Visual step-by-step diagrams for all pipelines |
 | [docs/LANGGRAPH_AGENT.md](docs/LANGGRAPH_AGENT.md) | Full LangGraph agent code with message trace |
 | [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | File-by-file code walkthrough |
 | [docs/CONCEPTS.md](docs/CONCEPTS.md) | All technical concepts explained from scratch |
