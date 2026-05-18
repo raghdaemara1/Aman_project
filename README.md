@@ -25,7 +25,7 @@ IntelliDoc lets you upload any insurance policy PDF and then:
 ┌─────────────────────────────────────────────────────┐
 │                   Your Browser                      │
 │          React 18 + TypeScript + Vite               │
-│  Upload Contract │ Ask Questions │ Extract Data     │
+│  Upload Policy │ Ask Questions │ Extract Data     │
 └───────────────────┬─────────────────────────────────┘
                     │  HTTP / REST API
                     ▼
@@ -70,7 +70,7 @@ IntelliDoc lets you upload any insurance policy PDF and then:
 ### Pipeline 1 — Document Upload & Indexing
 
 ```
-Contract PDF Uploaded
+Policy PDF Uploaded
       │
       ▼
 1. MD5 Hash Check — same file already indexed? Skip re-ingestion.
@@ -186,14 +186,14 @@ It always runs the same path: all chunks → Pydantic schema → structured tabl
 | **LLM** | Ollama `llama3.1:latest` | 100% local, no API key, no cost |
 | **Embeddings** | Ollama `nomic-embed-text` | Local text → 768-dim vectors |
 | **Vector Store** | ChromaDB | Local persistent vector database |
-| **Keyword Search** | BM25 (`rank-bm25`) | Exact match for contract numbers & amounts |
+| **Keyword Search** | BM25 (`rank-bm25`) | Exact match for policy numbers & amounts |
 | **AI Agent** | LangGraph `create_react_agent` | ReAct loop, tool routing, stateful graph |
 | **AI Framework** | LangChain | Prompt templates, chains, tool wrappers |
 | **PDF Parsing** | pypdf | Extract text from every PDF page |
 | **Data Validation** | Pydantic | Type-safe structured output from LLM |
 | **API Docs** | Swagger UI (built-in) | Interactive API explorer at `/docs` |
 
-> **Zero cloud dependencies.** Everything runs locally. No contract data leaves your machine.
+> **Zero cloud dependencies.** Everything runs locally. No policy data leaves your machine.
 
 ---
 
@@ -246,7 +246,7 @@ App running at `http://localhost:5173`
 ### Step 5 — Use the App
 
 1. Open `http://localhost:5173`
-2. Upload any consumer finance contract PDF using the sidebar
+2. Upload any insurance policy PDF using the sidebar
 3. Watch the **Ingestion Pipeline (Live)** logs appear in real-time
 4. Ask questions in the **Ask a Question** tab
 5. Click **Extract Policy Data** in the **Extract** tab
@@ -261,7 +261,7 @@ Interactive docs: **`http://localhost:8000/docs`** (Swagger UI)
 |---|---|---|
 | `/api/v1/upload` | `POST` | Upload a PDF and trigger the full ingestion pipeline |
 | `/api/v1/ask` | `POST` | Send a question to the LangGraph ReAct agent |
-| `/api/v1/extract` | `POST` | Extract all 8 structured contract fields |
+| `/api/v1/extract` | `POST` | Extract all 8 structured policy fields |
 | `/api/v1/logs` | `GET` | Poll for live pipeline step messages |
 | `/api/v1/store` | `DELETE` | Clear the vector store and start fresh |
 | `/health` | `GET` | Health check |
@@ -271,31 +271,78 @@ Interactive docs: **`http://localhost:8000/docs`** (Swagger UI)
 ## Key Design Decisions
 
 **Why Hybrid Search instead of pure vector search?**
-Vector search misses exact identifiers. A contract number like `AMAN-FIN-2025-CF-047832` has no semantic relationship to the query "what is the contract number?" — BM25 catches it perfectly. Combining both via RRF gives the best of both worlds.
+Vector search misses exact identifiers. A policy number like `US151741` has no semantic relationship to the query "what is the policy number?" — BM25 catches it perfectly. Combining both via RRF gives the best of both worlds.
 
 **Why two separate tools?**
-Search finds relevant passages. Extraction fills a typed schema. Keeping them separate forces the agent to reason explicitly about retrieval strategy — that reasoning is what makes the system "agentic".
+Search returns text passages. Extraction fills a typed schema. They are fundamentally different operations. Keeping them separate forces the agent to reason explicitly about retrieval strategy — that reasoning is what makes this system "agentic".
+
+**Why RRF instead of averaging scores?**
+BM25 produces TF-IDF counts (0–100s). ChromaDB produces cosine similarity (0–1). These scales are incomparable — averaging would let BM25 dominate. RRF uses only rank position (1st, 2nd, 3rd...) so the scales never matter.
+
+**Why temperature=0?**
+Extraction and tool routing must be deterministic. Temperature 0 always picks the highest-probability token — the same question always gives the same tool choice and the same extracted fields. Never use temperature > 0 for structured extraction.
+
+**Why a regex override after LLM extraction?**
+Local LLMs occasionally confuse visually similar identifiers. This document has `Policy Number: US151741` at the top and `GAP 26932-FL` at the bottom — both look like identifiers. After LLM extraction, `_regex_override()` scans the raw text for explicit `Label: value` patterns and overwrites any wrong LLM answer deterministically. LLM handles complex fields (exclusions), regex handles labeled fields (number, holder, dates).
 
 **Why Ollama instead of OpenAI?**
-Consumer finance contracts contain sensitive personal and financial data. Running everything locally ensures complete privacy with zero cost. The LangChain abstraction makes swapping to `gpt-4o` a one-line change.
+Insurance documents contain sensitive PII. Running everything locally ensures complete privacy with zero cost. The LangChain abstraction makes swapping to `gpt-4o` a one-line change.
 
-**Why page 1 is always included first?**
-Contract headers (contract number, customer name, financial terms) are always on page 1. By sorting chunks with page 1 first, the LLM always sees the critical fields before any other content — regardless of how chunking divided the page.
+**Why page 1 always sorted first?**
+Policy headers (number, holder, dates) are always on page 1. Sorting chunks by page number before sending to the LLM ensures critical fields appear before any other content — regardless of how chunking split the page.
+
+**Why pass all_chunks to the tool, not just use the retriever?**
+The retriever only returns the top-k semantically similar chunks. For extraction, you need ALL chunks — a field like the premium amount might be on a page that isn't semantically close to "policy number". Passing `get_chunks()` guarantees nothing is missed.
+
+---
+
+## Common Interview Questions
+
+**Q: How does the agent decide which tool to call?**
+The `@tool` decorator sends the function's docstring to the LLM as the tool description. The LLM reads both descriptions and picks based on the question. There is no if/else in code — all routing is done by the LLM reasoning.
+
+**Q: What is the ReAct loop?**
+Think → Act → Observe. The LLM outputs a tool call JSON (not an answer). LangGraph runs the Python function and adds the result as a ToolMessage. The LLM re-reads all messages and either calls another tool or writes the final answer.
+
+**Q: What is Pydantic used for here?**
+Two places, same function: `llm.with_structured_output(PolicyData)` forces the LLM to return JSON matching the `PolicyData` schema exactly. Pydantic validates every field type. If validation fails, the system falls back to raw JSON mode.
+
+**Q: What is the difference between the Ask tab and the Extract tab?**
+Ask tab → agent decides which tool to call (may use either tool). Extract tab → bypasses the agent entirely, always runs structured extraction directly. Two different endpoints: `/ask` vs `/extract`.
+
+**Q: How is this different from Snowflake Cortex Search?**
+Cortex Search does hybrid BM25 + vector + RRF internally — this app implements the same pattern manually. The logic is identical; the difference is scale (local vs cloud) and that this app makes the retrieval steps transparent and inspectable.
+
+**Q: What would you change for production?**
+Replace Ollama with GPT-4o (one-line LangChain swap), ChromaDB with Snowflake Cortex Search, add LangSmith for agent tracing, JWT auth, and Server-Sent Events instead of polling for live logs.
 
 ---
 
 ## What Would Come Next in Production
 
-| Current (Demo) | Production at Aman Scale |
+| Current (Demo) | Production |
 |---|---|
-| Ollama local llama3.1 | OpenAI GPT-4o or Anthropic Claude (one-line swap) |
-| ChromaDB local disk | Snowflake Cortex Search for millions of contracts |
-| In-memory BM25 | Elasticsearch for persistent keyword index |
-| No authentication | JWT — agent/branch staff login, contract ownership |
-| Single document | Multi-contract portfolio — compare versions, flag discrepancies |
-| Polling for logs | Server-Sent Events (SSE) — real-time streaming |
-| No observability | LangSmith — trace every agent step, measure latency |
-| No knowledge graph | Neo4j — link contracts → customers → payment history |
+| Ollama llama3.1 (local) | GPT-4o or Claude — one-line LangChain swap |
+| ChromaDB on disk | Snowflake Cortex Search — millions of documents |
+| In-memory BM25 | Elasticsearch — persistent, distributed |
+| Polling `/logs` every 1.5s | Server-Sent Events — true real-time streaming |
+| No auth | JWT — staff login, document ownership |
+| Single document | Multi-document — compare policy versions |
+| No tracing | LangSmith — trace every agent step, measure latency |
+
+---
+
+## Interview Prep Docs
+
+All explainer files are in the `docs/` folder:
+
+| File | What it covers |
+|---|---|
+| [docs/PIPELINES.md](docs/PIPELINES.md) | Visual step-by-step diagrams for all 3 pipelines |
+| [docs/LANGGRAPH_AGENT.md](docs/LANGGRAPH_AGENT.md) | Full LangGraph agent code with message trace |
+| [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | File-by-file code walkthrough |
+| [docs/CONCEPTS.md](docs/CONCEPTS.md) | All technical concepts explained from scratch |
+| [docs/GUIDE.md](docs/GUIDE.md) | Interview Q&A and pipeline output shapes |
 
 ---
 
