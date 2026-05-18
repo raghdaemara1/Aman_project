@@ -19,12 +19,18 @@ IMPORTANT INSTRUCTIONS:
 - Copy the value EXACTLY as it appears in the document
 - Only return "Not specified" if the field is truly absent from the document
 - For key_exclusions: list any conditions, losses, or situations explicitly NOT covered
+
+CRITICAL RULES:
+- policy_number: find the line that starts with "Policy Number:" and copy ONLY its value.
+  Do NOT use form numbers, document codes, or GAP numbers printed at the bottom of the page.
+  Form/document numbers (e.g. "GAP 26932-FL") are NOT the policy number.
+- policy_holder: find the line that starts with "Policyholder:" or "Policy Holder:" — this is the insured person or organization name, NOT the insurance company name.
 """
 
 
 class PolicyData(BaseModel):
-    policy_number: str = Field(description="The unique policy identifier exactly as shown e.g. US151741")
-    policy_holder: str = Field(description="Full name of the policyholder or insured entity exactly as shown")
+    policy_number: str = Field(description="Value on the line labelled 'Policy Number:' only — e.g. US151741. Never use GAP numbers or form codes.")
+    policy_holder: str = Field(description="Full name of the policyholder or insured entity exactly as shown — NOT the insurance company name")
     coverage_type: str = Field(description="Type of insurance coverage e.g. Accident Only, Health, Comprehensive")
     start_date: str = Field(description="Policy effective/start date e.g. August 1, 2013")
     end_date: str = Field(description="Policy expiration/end date e.g. August 1, 2014")
