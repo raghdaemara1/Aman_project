@@ -138,8 +138,16 @@ export default function App() {
             </p>
           </div>
         )}
-        {documentLoaded && activeTab === 'ask' && <AskPage documentLoaded={documentLoaded} />}
-        {documentLoaded && activeTab === 'extract' && <ExtractPage documentLoaded={documentLoaded} />}
+        {documentLoaded && (
+          <>
+            <div className={activeTab === 'ask' ? '' : 'hidden'}>
+              <AskPage documentLoaded={documentLoaded} />
+            </div>
+            <div className={activeTab === 'extract' ? '' : 'hidden'}>
+              <ExtractPage documentLoaded={documentLoaded} />
+            </div>
+          </>
+        )}
       </main>
     </div>
   )
