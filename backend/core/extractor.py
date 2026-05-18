@@ -59,7 +59,8 @@ def _regex_override(result: "PolicyData", context: str) -> "PolicyData":
     if v:
         overrides["policy_number"] = v
 
-    v = _scan_label(context, ["Policyholder", "Policy Holder", "Named Insured", "Insured"])
+    # Do NOT include generic "Insured" — it appears in definition text with wrong meaning
+    v = _scan_label(context, ["Policyholder", "Policy Holder", "Named Insured"])
     if v:
         overrides["policy_holder"] = v
 
@@ -70,6 +71,14 @@ def _regex_override(result: "PolicyData", context: str) -> "PolicyData":
     v = _scan_label(context, ["Policy Expiration Date", "Expiration Date", "Expiry Date"])
     if v:
         overrides["end_date"] = v
+
+    v = _scan_label(context, ["MAXIMUM BENEFIT AMOUNT", "Maximum Benefit Amount", "Coverage Limit", "Benefit Limit"])
+    if v:
+        overrides["coverage_limit"] = v
+
+    v = _scan_label(context, ["PREMIUM", "Premium Amount", "Annual Premium", "Monthly Premium"])
+    if v:
+        overrides["premium_amount"] = v
 
     if overrides:
         return result.model_copy(update=overrides)

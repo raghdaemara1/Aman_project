@@ -1,5 +1,5 @@
 from langchain_core.tools import tool
-from core.vectorstore import get_retriever
+from core.vectorstore import get_retriever, get_chunks
 from core.extractor import extract_policy_data
 
 
@@ -11,7 +11,8 @@ def structured_extract(field_name: str) -> str:
     Input should be the field name or a description of the specific data being requested."""
 
     retriever = get_retriever(k=10)
-    policy = extract_policy_data(retriever)
+    all_chunks = get_chunks()
+    policy = extract_policy_data(retriever, all_chunks=all_chunks)
 
     normalized = field_name.lower().strip()
 

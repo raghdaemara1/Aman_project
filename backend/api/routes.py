@@ -63,12 +63,13 @@ async def upload_document(file: UploadFile = File(...)):
     if last_uploaded_hash == file_hash and has_documents():
         print(">>> [API] Same file already indexed — skipping re-ingestion")
         current_pipeline_steps.append(f"Same document already indexed (MD5: {file_hash[:8]}…) — skipping re-ingestion")
-        chunk_count = len(get_chunks())
+        chunks = get_chunks()
+        page_count = max((c.metadata.get("page_number", 1) for c in chunks), default=1)
         return {
-            "chunks_indexed": chunk_count,
+            "chunks_indexed": len(chunks),
             "metadata": {
                 "filename": file.filename,
-                "pages": 1,
+                "pages": page_count,
                 "indexed_at": datetime.datetime.utcnow().isoformat() + "Z",
             },
             "steps": list(current_pipeline_steps),
