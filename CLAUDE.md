@@ -1,11 +1,11 @@
 # IntelliDoc — Insurance Document Intelligence Agent
-## AMAN Interview Demo — Current Project State
+## Finance RAG System — Current Project State
 
 ---
 
 ## What This Is
 
-A fully local Agentic RAG system for the AMAN Holding interview.
+A fully local Finance RAG system.
 Uploads an insurance policy PDF, answers questions about it, and extracts
 structured fields — all without sending data to the cloud.
 
@@ -34,14 +34,14 @@ Schema:   Pydantic PolicyData (8 fields)
 
 ```
 my-project/
-├── README.md               ← main project doc, show this in interview
+├── README.md               ← main project doc
 ├── CLAUDE.md               ← this file
 ├── docs/
-│   ├── PIPELINES.md        ← visual pipeline diagrams (best for interview prep)
+│   ├── PIPELINES.md        ← visual pipeline diagrams
 │   ├── LANGGRAPH_AGENT.md  ← full LangGraph agent code walkthrough
 │   ├── WALKTHROUGH.md      ← file-by-file code explanation
 │   ├── CONCEPTS.md         ← all technical concepts explained from scratch
-│   └── GUIDE.md            ← interview Q&A and pipeline output shapes
+│   └── GUIDE.md            ← Q&A and pipeline output shapes
 ├── backend/
 │   ├── main.py             ← FastAPI app entry point
 │   ├── requirements.txt
@@ -102,7 +102,7 @@ ollama pull nomic-embed-text
 
 ---
 
-## Key Design Decisions (know these for interview)
+## Key Design Decisions
 
 **Why two tools and not one?**
 Search returns text passages. Extraction fills a typed schema.

@@ -296,7 +296,7 @@ The retriever only returns the top-k semantically similar chunks. For extraction
 
 ---
 
-## Common Interview Questions
+## Common Questions
 
 **Q: How does the agent decide which tool to call?**
 The `@tool` decorator sends the function's docstring to the LLM as the tool description. The LLM reads both descriptions and picks based on the question. There is no if/else in code — all routing is done by the LLM reasoning.
@@ -332,7 +332,7 @@ Replace Ollama with GPT-4o (one-line LangChain swap), ChromaDB with Snowflake Co
 
 ---
 
-## Interview Prep Docs
+## Docs
 
 All explainer files are in the `docs/` folder:
 
@@ -342,7 +342,7 @@ All explainer files are in the `docs/` folder:
 | [docs/LANGGRAPH_AGENT.md](docs/LANGGRAPH_AGENT.md) | Full LangGraph agent code with message trace |
 | [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | File-by-file code walkthrough |
 | [docs/CONCEPTS.md](docs/CONCEPTS.md) | All technical concepts explained from scratch |
-| [docs/GUIDE.md](docs/GUIDE.md) | Interview Q&A and pipeline output shapes |
+| [docs/GUIDE.md](docs/GUIDE.md) | Q&A and pipeline output shapes |
 
 ---
 

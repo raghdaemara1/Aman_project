@@ -431,7 +431,7 @@ routes.py /ask
 
 ---
 
-## Files to open during the interview demo
+## Key Files to Open
 
 | What you want to show | File to open |
 |---|---|

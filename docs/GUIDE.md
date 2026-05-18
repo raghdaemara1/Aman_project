@@ -1,6 +1,6 @@
-# IntelliDoc — Interview Preparation Guide
+# IntelliDoc — Finance RAG System Guide
 
-> Everything you need to explain this app confidently at the Aman interview:
+> Everything you need to understand this Finance RAG system:
 > pipelines, concepts, output shapes, design decisions, and likely questions.
 > All examples use Aman's real business domain: consumer finance contracts.
 
@@ -17,7 +17,7 @@
 7. [Key Concepts Explained Simply](#key-concepts-explained-simply)
 8. [Actual Output Shapes (with real examples)](#actual-output-shapes)
 9. [Design Decisions & Why](#design-decisions--why)
-10. [Likely Interview Questions & Strong Answers](#likely-interview-questions--strong-answers)
+10. [Common Questions & Answers](#common-questions--answers)
 11. [What You'd Change in Production at Aman](#what-youd-change-in-production)
 
 ---
@@ -390,7 +390,7 @@ For contract Q&A and structured extraction, you need deterministic, factual answ
 
 ---
 
-## Likely Interview Questions & Strong Answers
+## Common Questions & Answers
 
 **Q: What is RAG and why is it better than fine-tuning for this use case?**
 
