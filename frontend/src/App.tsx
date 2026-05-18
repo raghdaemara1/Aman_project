@@ -4,7 +4,7 @@ import PipelineLog from './components/PipelineLog'
 import AskPage from './pages/AskPage'
 import ExtractPage from './pages/ExtractPage'
 import ChatPage from './pages/ChatPage'
-import { getLogs, clearStore } from './services/api'
+import { getLogs, clearStore, getStatus } from './services/api'
 import type { UploadResponse } from './services/api'
 
 type Tab = 'ask' | 'extract' | 'chat'
@@ -17,6 +17,18 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false)
   const [liveUploadSteps, setLiveUploadSteps] = useState<string[]>([])
   const [isClearing, setIsClearing] = useState(false)
+
+  useEffect(() => {
+    getStatus().then(s => {
+      if (s.has_document) {
+        setUploadInfo({
+          chunks_indexed: s.chunks_indexed,
+          metadata: { filename: 'Previously indexed document', pages: s.pages, indexed_at: '' },
+          steps: [],
+        })
+      }
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>

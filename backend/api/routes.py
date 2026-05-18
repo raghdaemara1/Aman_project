@@ -34,6 +34,16 @@ class AskRequest(BaseModel):
     query: str
 
 
+@router.get("/status", tags=["documents"], summary="Check if a document is indexed")
+async def get_status():
+    """Returns whether a document is already indexed in ChromaDB. Called by the frontend on startup."""
+    if not has_documents():
+        return {"has_document": False, "chunks_indexed": 0, "pages": 0}
+    chunks = get_chunks()
+    page_count = max((c.metadata.get("page_number", 1) for c in chunks), default=1)
+    return {"has_document": True, "chunks_indexed": len(chunks), "pages": page_count}
+
+
 @router.get("/logs")
 async def get_logs():
     """Return current pipeline steps. Polled by frontend during long operations."""

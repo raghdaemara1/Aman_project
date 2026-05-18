@@ -83,6 +83,11 @@ export async function clearStore(): Promise<void> {
   await api.delete('/store')
 }
 
+export async function getStatus(): Promise<{ has_document: boolean; chunks_indexed: number; pages: number }> {
+  const { data } = await api.get('/status')
+  return data
+}
+
 export async function getLogs(): Promise<{ steps: string[] }> {
   const { data } = await api.get('/logs')
   return data
